@@ -37,15 +37,16 @@ By reducing redundancy in the data and learning compact representations, the mod
 3. Create and activate a virtual environment (recommended)
    ```bash
    python -m venv venv
-   venv\Scripts\activate
+   venv\Scripts\activate --> on Windows
+   source venv/bin/activate --> on macOS/Linux
    ```
 4. Install dependencies:
+
    ```bash
-  pip install numpy pandas matplotlib seaborn opencv-python scikit-learn tensorflow
+    pip install numpy pandas matplotlib seaborn opencv-python scikit-learn tensorflow
    ```
 5. Run the project
 
    ```bash
    python main.py
-  
    ```
