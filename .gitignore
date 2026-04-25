@@ -10,3 +10,4 @@
 __pycache__/
 
 chroma_store/
+projects/techmantra/src/db/triage.db

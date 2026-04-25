@@ -8,8 +8,9 @@ import sqlite3
 import uuid
 from pathlib import Path
 
-DB_PATH     = Path(__file__).parent / "triage.db"
-SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+# Use .resolve() to get the absolute, real path on your Mac
+DB_PATH     = Path(__file__).resolve().parent / "triage.db"
+SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
 
 def get_connection() -> sqlite3.Connection:

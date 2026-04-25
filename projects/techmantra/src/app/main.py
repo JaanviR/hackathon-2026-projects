@@ -1,8 +1,10 @@
-import streamlit as st
-from session_state import init_session
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import streamlit as st
+from session_state import init_session
+
 from pages import signup, symptoms
 
 # 1. Start the memory
