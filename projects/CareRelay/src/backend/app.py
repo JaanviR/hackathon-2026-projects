@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from fhir_utils import load_patient
 
 app = Flask(__name__)
 CORS(app)
@@ -7,7 +8,12 @@ CORS(app)
 
 @app.route("/api/patient/<patient_id>")
 def get_patient(patient_id):
-    return jsonify({"message": "patient endpoint ready"})
+    try:
+        return jsonify(load_patient(patient_id))
+    except FileNotFoundError:
+        return jsonify({"error": "patient data file not found"}), 404
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route("/api/brief", methods=["POST"])
