@@ -154,6 +154,49 @@ def clean_json_response(text):
             text = text[:end_idx + 1]
     
     return text
+
+def validate_and_fix_response(result):
+    """
+    Checks that required keys exist in LLM response.
+    Adds safe defaults for any missing keys.
+    result: parsed dict from json.loads()
+    Returns: dict with all required keys guaranteed to exist
+    """
+    # Define required keys and their safe default values
+    # If LLM missed a key we fill it in safely
+    defaults = {
+        "top_conditions": [{"name": "Unable to determine", "probability": 0}],
+        "confidence_score": 0.5,
+        "risk_tier": "medium",      # Default to medium — safer than low
+        "warnings": [],
+        "remedies": [],
+        "summary": "Analysis complete. Please consult a doctor for confirmation.",
+        "sources": [],
+        "disclaimer": "This is not a substitute for clinical judgment"
+    }
+    
+    # For each required key check if it exists in result
+    # If not, add the default value
+    for key, default_value in defaults.items():
+        if key not in result:
+            result[key] = default_value
+    
+    # Validate confidence_score is a float between 0 and 1
+    # LLM sometimes returns it as a percentage (75 instead of 0.75)
+    confidence = result.get("confidence_score", 0.5)
+    if isinstance(confidence, (int, float)) and confidence > 1:
+        # Convert percentage to decimal
+        result["confidence_score"] = confidence / 100
+    
+    # Validate risk_tier is one of our expected values
+    valid_tiers = ["low", "medium", "high"]
+    if result.get("risk_tier", "").lower() not in valid_tiers:
+        result["risk_tier"] = "medium"  # Default to medium if invalid
+    
+    # Normalize risk_tier to lowercase for consistency
+    result["risk_tier"] = result["risk_tier"].lower()
+    
+    return result
     
 def get_fallback_response(error_message):
     """
