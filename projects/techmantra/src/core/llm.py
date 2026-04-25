@@ -2,7 +2,8 @@ import ollama
 import json
 import re
 
-MODEL_NAME = "bio-mistral"
+# MODEL_NAME = "adrienbrault/biomistral-7b:Q2_K"
+MODEL_NAME = "alibayram/medgemma"
 
 SYSTEM_PROMPT = """You are a medical triage assistant helping patients 
 understand their symptoms.
@@ -16,7 +17,7 @@ STRICT RULES YOU MUST FOLLOW:
 6. Do not include markdown code blocks like ```json — just raw JSON
 
 Your response must be a single valid JSON object with EXACTLY these keys:
-{
+{{
   "top_conditions": [{"name": "condition name", "probability": 75}],
   "confidence_score": 0.75,
   "risk_tier": "low",
@@ -25,7 +26,7 @@ Your response must be a single valid JSON object with EXACTLY these keys:
   "summary": "plain english summary for the patient",
   "sources": ["source 1", "source 2"],
   "disclaimer": "This is not a substitute for clinical judgment"
-}
+}}
 """
 
 def run_inference(payload, context):
@@ -103,6 +104,8 @@ def run_inference(payload, context):
         # Extract the response text from Ollama's response object
         # response["message"]["content"] contains the LLM's reply
         raw_text = response["message"]["content"].strip()
+
+        print(f"DEBUG: LLM wrote this: {raw_text}") # Add this temporary line
         
         # Clean up response in case LLM added markdown code blocks
         # Some models wrap JSON in ```json ... ``` despite instructions
@@ -113,6 +116,8 @@ def run_inference(payload, context):
         
         # Validate that required keys exist in the response
         result = validate_and_fix_response(result)
+
+
         
         return result
     
@@ -223,3 +228,54 @@ def get_fallback_response(error_message):
         "sources": [],
         "disclaimer": "This is not a substitute for clinical judgment"
     }
+
+if __name__ == "__main__":
+    # 1. Mock Payload (This mimics the output of your preprocessing.py)
+    test_payload = {
+        "patient_age": 28,
+        "known_conditions": "none",
+        "known_allergies": "penicillin",
+        "negations": ["fever", "coughing"],
+        "raw_symptoms": "I have a sharp pain in my chest and my heart is racing.",
+        "extracted_symptoms": ["chest pain", "racing heart"]
+    }
+
+    # 2. Mock Context (This mimics the output of your rag.py)
+    # In the real app, these 'docs' would be chunks from MedlinePlus or CDC
+    test_context = {
+        "docs": [
+            "Chest pain can be a sign of many issues. Sharp pain that worsens with breathing might be pleurisy. However, sudden chest pain with a fast heart rate (tachycardia) can indicate a serious cardiac event or pulmonary embolism.",
+            "Tachycardia is a heart rate over 100 beats per minute. When combined with chest discomfort, immediate medical evaluation is often required."
+        ],
+        "sources": [
+            {"source": "MedlinePlus - Chest Pain"},
+            {"source": "CDC - Heart Health"}
+        ]
+    }
+
+    print("=" * 60)
+    print(f"Testing {MODEL_NAME} Inference...")
+    print(f"Input Symptoms: {test_payload['raw_symptoms']}")
+    print("=" * 60)
+
+    try:
+        # Run the actual inference
+        result = run_inference(test_payload, test_context)
+
+        # Print the structured results
+        print("\n--- AI ANALYSIS RESULTS ---")
+        print(f"Risk Tier: {result['risk_tier'].upper()}")
+        print(f"Confidence: {result['confidence_score']}")
+        print(f"Top Conditions:")
+        for cond in result['top_conditions']:
+            print(f" - {cond['name']} ({cond['probability']}%)")
+        
+        print(f"\nSummary: {result['summary']}")
+        print(f"Remedies: {', '.join(result['remedies']) if result['remedies'] else 'None'}")
+        print(f"Sources: {', '.join(result['sources'])}")
+        print(f"\nDisclaimer: {result['disclaimer']}")
+
+    except Exception as e:
+        print(f"Test Failed! Error: {e}")
+    
+    print("=" * 60)
