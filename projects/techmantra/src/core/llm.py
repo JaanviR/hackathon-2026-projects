@@ -121,3 +121,29 @@ def run_inference(payload, context):
         print(f"Ollama error: {e}")
         print(f"Make sure you ran: ollama pull {MODEL_NAME}")
         return get_fallback_response(f"Ollama model error: {e}")
+    
+def get_fallback_response(error_message):
+    """
+    Returns a safe fallback response when LLM fails completely.
+    Ensures the app never crashes due to LLM errors.
+    error_message: string describing what went wrong
+    """
+    return {
+        "top_conditions": [
+            {"name": "Unable to determine", "probability": 0}
+        ],
+        # Low confidence triggers UNCERTAIN tier in triage.py
+        "confidence_score": 0.0,
+        # Medium risk as safe default — not too alarming, not dismissive
+        "risk_tier": "medium",
+        "warnings": [
+            "AI analysis unavailable — please consult a doctor directly"
+        ],
+        "remedies": [],
+        "summary": (
+            f"The AI analysis could not be completed ({error_message}). "
+            "Please describe your symptoms to a healthcare professional."
+        ),
+        "sources": [],
+        "disclaimer": "This is not a substitute for clinical judgment"
+    }
