@@ -71,7 +71,7 @@ function AuthSection({ onAuthSuccess }) {
         )
       } else {
         const loginData = await loginUser({
-          username: form.username,
+          email: form.email,
           password: form.password,
         })
 
@@ -81,6 +81,7 @@ function AuthSection({ onAuthSuccess }) {
           loginData.user?.username || form.username,
           loginData.user?.role
         )
+
         setSuccess('Login successful. Redirecting to dashboard...')
         setForm({
           username: '',
@@ -147,19 +148,21 @@ function AuthSection({ onAuthSuccess }) {
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
-                <label className="auth-label" htmlFor="username">
-                  Username
+                <label className="auth-label" htmlFor={mode === 'register' ? 'username' : 'email'}>
+                  {mode === 'register' ? 'Username' : 'Email'}
                 </label>
                 <input
-                  id="username"
-                  name="username"
-                  value={form.username}
+                  id={mode === 'register' ? 'username' : 'email'}
+                  name={mode === 'register' ? 'username' : 'email'}
+                  type={mode === 'register' ? 'text' : 'email'}
+                  value={mode === 'register' ? form.username : form.email}
                   onChange={updateField}
                   className="auth-input"
-                  placeholder="Enter username"
-                  autoComplete="username"
+                  placeholder={mode === 'register' ? 'Enter username' : 'name@example.com'}
+                  autoComplete={mode === 'register' ? 'username' : 'email'}
                   required
                 />
+
 
                 {mode === 'register' && (
                   <>

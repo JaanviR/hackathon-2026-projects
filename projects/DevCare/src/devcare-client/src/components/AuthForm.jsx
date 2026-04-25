@@ -56,14 +56,15 @@ function AuthForm({ mode }) {
         setTimeout(() => navigate('/dashboard'), 600)
       } else {
         const loginData = await loginUser({
-          username: form.username,
+          email: form.email,
           password: form.password,
         })
 
-        saveAuth(loginData.access, loginData.refresh, form.username)
+        saveAuth(loginData.access, loginData.refresh, loginData.user.username)
         setSuccess('Login successful. Redirecting to dashboard...')
         setTimeout(() => navigate('/dashboard'), 600)
       }
+
 
       setForm(initialFormState)
     } catch (submitError) {
@@ -106,20 +107,22 @@ function AuthForm({ mode }) {
         <article className="elevated-card rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:p-8">
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="auth-label" htmlFor="username">
-                Username
+              <label className="auth-label" htmlFor={isRegister ? 'username' : 'email'}>
+                {isRegister ? 'Username' : 'Email'}
               </label>
               <input
-                id="username"
-                name="username"
-                value={form.username}
+                id={isRegister ? 'username' : 'email'}
+                name={isRegister ? 'username' : 'email'}
+                type={isRegister ? 'text' : 'email'}
+                value={isRegister ? form.username : form.email}
                 onChange={updateField}
                 className="auth-input"
-                placeholder="Enter username"
-                autoComplete="username"
+                placeholder={isRegister ? 'Enter username' : 'name@example.com'}
+                autoComplete={isRegister ? 'username' : 'email'}
                 required
               />
             </div>
+
 
             {isRegister && (
               <div>
