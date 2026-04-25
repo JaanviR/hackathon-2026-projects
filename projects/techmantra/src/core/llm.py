@@ -122,6 +122,39 @@ def run_inference(payload, context):
         print(f"Make sure you ran: ollama pull {MODEL_NAME}")
         return get_fallback_response(f"Ollama model error: {e}")
     
+def clean_json_response(text):
+    """
+    Removes markdown code blocks that some models add around JSON.
+    e.g. ```json { ... } ``` → { ... }
+    text: raw string from LLM
+    Returns: cleaned string ready for json.loads()
+    """
+    # Remove ```json at the start if present
+    text = re.sub(r'^```json\s*', '', text, flags=re.MULTILINE)
+    
+    # Remove ``` at the end if present
+    text = re.sub(r'\s*```$', '', text, flags=re.MULTILINE)
+    
+    # Strip any remaining whitespace
+    text = text.strip()
+    
+    # If the text doesn't start with { find the first {
+    # Sometimes models add a sentence before the JSON
+    if not text.startswith('{'):
+        start_idx = text.find('{')
+        if start_idx != -1:
+            # Trim everything before the first {
+            text = text[start_idx:]
+    
+    # Find the last } and trim everything after it
+    # Handles cases where model adds text after the JSON
+    if not text.endswith('}'):
+        end_idx = text.rfind('}')
+        if end_idx != -1:
+            text = text[:end_idx + 1]
+    
+    return text
+    
 def get_fallback_response(error_message):
     """
     Returns a safe fallback response when LLM fails completely.
