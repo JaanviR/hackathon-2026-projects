@@ -1,3 +1,9 @@
+import ollama
+import json
+import re
+
+MODEL_NAME = "bio-mistral"
+
 SYSTEM_PROMPT = """You are a medical triage assistant helping patients 
 understand their symptoms.
 
@@ -64,3 +70,54 @@ def run_inference(payload, context):
         IMPORTANT: Respond with ONLY a valid JSON object. 
         No explanation, no markdown, no code blocks. Just raw JSON.
         """
+    try:
+        # ollama.chat() sends a message to the local Ollama server
+        # model: which pulled model to use
+        # messages: list of message dicts with role and content
+        # options: model parameters
+        response = ollama.chat(
+            model=MODEL_NAME,
+            messages=[
+                {
+                    # System message sets behavior rules
+                    "role": "system",
+                    "content": SYSTEM_PROMPT
+                },
+                {
+                    # User message contains the actual symptoms + context
+                    "role": "user",
+                    "content": user_message
+                }
+            ],
+            options={
+                # temperature=0 makes output more deterministic
+                # Lower = more consistent, less creative
+                # For medical diagnosis we want consistency
+                "temperature": 0.1,
+                
+                # Maximum tokens in the response
+                # 1000 is enough for our JSON structure
+                "num_predict": 1000,
+            }
+        )   
+        # Extract the response text from Ollama's response object
+        # response["message"]["content"] contains the LLM's reply
+        raw_text = response["message"]["content"].strip()
+        
+        # Clean up response in case LLM added markdown code blocks
+        # Some models wrap JSON in ```json ... ``` despite instructions
+        raw_text = clean_json_response(raw_text)
+        
+        # Parse JSON string into Python dict
+        result = json.loads(raw_text)
+        
+        # Validate that required keys exist in the response
+        result = validate_and_fix_response(result)
+        
+        return result
+    
+    except ollama.ResponseError as e:
+        # Ollama server returned an error — usually model not found
+        print(f"Ollama error: {e}")
+        print(f"Make sure you ran: ollama pull {MODEL_NAME}")
+        return get_fallback_response(f"Ollama model error: {e}")
