@@ -28,13 +28,13 @@ def register_view(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_view(request):
-    username = request.data.get('username', '')
+    email = request.data.get('email', '')
     password = request.data.get('password', '')
 
-    user = authenticate(request, username=username, password=password)
+    user = authenticate(request, email=email, password=password)
     if user is None:
         return Response(
-            {'detail': 'Invalid username or password.'},
+            {'detail': 'Invalid email or password.'},
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
@@ -44,3 +44,4 @@ def login_view(request):
         'access': str(refresh.access_token),
         'refresh': str(refresh),
     })
+

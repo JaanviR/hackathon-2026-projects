@@ -7,8 +7,12 @@ class User(AbstractUser):
         ('patient', 'Patient'),
         ('doctor', 'Doctor'),
     ]
+    email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='patient')
-    email = models.EmailField(unique=True, blank=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
 
     def __str__(self):
-        return f'{self.username} ({self.role})'
+        return f'{self.email} ({self.role})'
+
