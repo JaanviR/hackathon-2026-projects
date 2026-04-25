@@ -22,19 +22,45 @@ Your response must be a single valid JSON object with EXACTLY these keys:
 }
 """
 
-prompt = f"""
-RETRIEVED MEDICAL DOCUMENTS (use ONLY these for your answer):
-{text}
+def run_inference(payload, context):
+    """
+    Sends symptoms + RAG context to local Ollama model.
+    payload: structured dict from preprocessing.py
+    context: dict with docs and sources from rag.py (without context the model will start to hallucinate)
+    Returns: parsed dict with diagnosis, risk, remedies etc.
+    """
+    # Join all retrieved document chunks into one block of text
+    # These are the medical articles ChromaDB retrieved
+    docs_text = "\n\n".join(context["docs"])
+    
+    # Pull source names from metadata for attribution
+    source_names = [
+        s.get("source", "Medical Database") 
+        for s in context["sources"]
+    ]
+    
+    # Build the full prompt that combines:
+    # - Retrieved medical documents (RAG context)
+    # - Patient profile information
+    # - Reported symptoms
+    user_message = f"""
+        RETRIEVED MEDICAL DOCUMENTS (use ONLY these for your answer):
+        {docs_text}
 
-PATIENT INFORMATION:
-- Age: 
-- Known pre-existing conditions: 
-- Known allergies:
+        PATIENT INFORMATION:
+        - Age: {payload['patient_age']}
+        - Known pre-existing conditions: {payload['known_conditions']}
+        - Known allergies: {payload['known_allergies']}
+        - Symptoms patient does NOT have: {payload['negations']}
 
-CLINICAL NER ANALYSIS:
+        REPORTED SYMPTOMS:
+        {payload['raw_symptoms']}
 
-FULL SYMPTOM DESCRIPTION:
+        EXTRACTED SYMPTOM ENTITIES:
+        {', '.join(payload['extracted_symptoms'])}
 
-IMPORTANT: Respond with ONLY a valid JSON object.
-No explanation, no markdown, no code blocks. Just raw JSON.
-"""
+        Available sources: {', '.join(source_names)}
+
+        IMPORTANT: Respond with ONLY a valid JSON object. 
+        No explanation, no markdown, no code blocks. Just raw JSON.
+        """
