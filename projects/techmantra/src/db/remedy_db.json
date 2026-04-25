@@ -1,0 +1,34 @@
+{
+  "common cold": {
+    "remedies": [
+      "Drink plenty of fluids (water, juice, clear broth).",
+      "Get plenty of rest to help your immune system.",
+      "Gargle with salt water for a sore throat."
+    ],
+    "watch_out": "Seek care if you have a fever lasting more than 3 days or difficulty breathing."
+  },
+  "headache": {
+    "remedies": [
+      "Rest in a quiet, dark room.",
+      "Apply a cool cloth or ice pack to your forehead.",
+      "Stay hydrated and avoid caffeine."
+    ],
+    "watch_out": "Go to the ER for a sudden, 'thunderclap' headache or if accompanied by a stiff neck."
+  },
+  "migraine": {
+    "remedies": [
+      "Avoid bright lights and loud noises.",
+      "Try a small amount of caffeine in the early stages.",
+      "Practice deep breathing or meditation."
+    ],
+    "watch_out": "Seek help if you experience vision loss or weakness on one side of the body."
+  },
+  "stomach ache": {
+    "remedies": [
+      "Try the BRAT diet (Bananas, Rice, Applesauce, Toast).",
+      "Sip ginger ale or peppermint tea.",
+      "Use a heating pad on your abdomen for comfort."
+    ],
+    "watch_out": "Consult a doctor if you have blood in your stool or severe, localized pain."
+  }
+}

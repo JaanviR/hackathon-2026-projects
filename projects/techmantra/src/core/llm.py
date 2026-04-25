@@ -236,7 +236,7 @@ if __name__ == "__main__":
         "known_conditions": "none",
         "known_allergies": "penicillin",
         "negations": ["fever", "coughing"],
-        "raw_symptoms": "I have a sharp pain in my chest and my heart is racing.",
+        "raw_symptoms": "I have cold and cough",
         "extracted_symptoms": ["chest pain", "racing heart"]
     }
 
