@@ -10,6 +10,8 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      {/* Temporary route for testing - remove after backend is ready */}
+      <Route path="/patient" element={<PatientDashboardPage />} />
       <Route
         path="/dashboard"
         element={
