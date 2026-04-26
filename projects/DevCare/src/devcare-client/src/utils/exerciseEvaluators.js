@@ -1,89 +1,132 @@
 import { calculateAngle } from './angleUtils';
 
 /**
- * Exercise Evaluators
- * Each function takes `landmarks` and `state` as arguments.
- * `landmarks`: Mediapipe pose landmarks.
- * `state`: Current exercise state object { reps, stage, feedback, ... }.
- * Returns the updated `state`.
+ * Intelligent Exercise Evaluators
+ * Provides multi-layer feedback including corrections and dynamic accuracy scores.
  */
 
-// Helper to get landmark
 const getLandmark = (landmarks, index) => landmarks[index];
 
+// Generic accuracy calculator based on target ranges
+const calculateAccuracy = (current, minOptimal, maxOptimal, minTolerance, maxTolerance) => {
+  if (current >= minOptimal && current <= maxOptimal) return 100;
+  if (current < minTolerance || current > maxTolerance) return 0;
+  
+  if (current < minOptimal) {
+    return Math.max(0, 100 - ((minOptimal - current) / (minOptimal - minTolerance)) * 100);
+  }
+  return Math.max(0, 100 - ((current - maxOptimal) / (maxTolerance - maxOptimal)) * 100);
+};
+
 export const evaluateBicepCurl = (landmarks, state) => {
-  // landmarks for right arm: shoulder=12, elbow=14, wrist=16
-  // We can use left or right. Let's use right for simplicity or choose the most visible one.
   const shoulder = getLandmark(landmarks, 12);
   const elbow = getLandmark(landmarks, 14);
   const wrist = getLandmark(landmarks, 16);
+  const hip = getLandmark(landmarks, 24);
 
-  if (!shoulder || !elbow || !wrist) return state;
+  if (!shoulder || !elbow || !wrist || !hip) return state;
 
   const angle = calculateAngle(shoulder, elbow, wrist);
+  const torsoAngle = calculateAngle(shoulder, hip, getLandmark(landmarks, 26)); // Check if standing straight
+
   let newStage = state.stage;
   let newReps = state.reps;
-  let newFeedback = "Good form";
+  let primaryFeedback = "Good form";
+  let corrections = [];
+  
+  // Track drifting elbow
+  const elbowShoulderDist = Math.abs(elbow.x - shoulder.x);
+  if (elbowShoulderDist > 0.15) corrections.push("Keep elbow tucked closer to your body");
+  if (torsoAngle < 160) corrections.push("Stand up straight, don't lean forward");
 
   if (angle > 160) {
     newStage = "down";
+    if (angle > 175) corrections.push("Don't hyperextend your elbow");
   }
+  
   if (angle < 45 && newStage === "down") {
     newStage = "up";
     newReps += 1;
   }
 
-  // Simple mistake detection
   if (angle > 45 && angle < 160) {
-    newFeedback = "Keep going";
+    if (newStage === "down") primaryFeedback = "Curling up...";
+    else primaryFeedback = "Lowering down...";
   }
 
-  return { ...state, reps: newReps, stage: newStage, feedback: newFeedback, currentAngle: angle };
+  if (corrections.length > 0) primaryFeedback = "Needs correction";
+
+  // Calculate dynamic accuracy
+  let accuracyScore = 100;
+  if (newStage === 'up' && angle > 50) accuracyScore = calculateAccuracy(angle, 30, 45, 20, 60);
+  if (newStage === 'down' && angle < 150) accuracyScore = calculateAccuracy(angle, 160, 180, 140, 190);
+  if (elbowShoulderDist > 0.15) accuracyScore -= 15;
+  if (torsoAngle < 160) accuracyScore -= 10;
+  accuracyScore = Math.max(0, Math.min(100, Math.round(accuracyScore)));
+
+  return { ...state, reps: newReps, stage: newStage, feedback: primaryFeedback, corrections, currentAngle: Math.round(angle), accuracyScore };
 };
 
 export const evaluateSquat = (landmarks, state) => {
-  // landmarks for right leg: hip=24, knee=26, ankle=28
+  const shoulder = getLandmark(landmarks, 12);
   const hip = getLandmark(landmarks, 24);
   const knee = getLandmark(landmarks, 26);
   const ankle = getLandmark(landmarks, 28);
 
-  if (!hip || !knee || !ankle) return state;
+  if (!shoulder || !hip || !knee || !ankle) return state;
 
-  const angle = calculateAngle(hip, knee, ankle);
+  const kneeAngle = calculateAngle(hip, knee, ankle);
+  const backAngle = calculateAngle(shoulder, hip, knee);
+
   let newStage = state.stage;
   let newReps = state.reps;
-  let newFeedback = "Good form";
+  let primaryFeedback = "Good form";
+  let corrections = [];
 
-  // Standing: angle ~ 180, Squatting: angle < 90
-  if (angle > 160) {
+  if (backAngle < 90) corrections.push("Keep your chest up and back straight");
+  if (Math.abs(knee.x - ankle.x) > 0.2) corrections.push("Don't let knees cave in or bow out");
+
+  if (kneeAngle > 160) {
     newStage = "up";
   }
-  if (angle < 100 && newStage === "up") {
+  if (kneeAngle < 100 && newStage === "up") {
     newStage = "down";
     newReps += 1;
   }
 
-  if (angle > 100 && angle < 160) {
-     newFeedback = "Go lower";
+  if (kneeAngle > 100 && kneeAngle < 160) {
+    primaryFeedback = newStage === "up" ? "Squatting down..." : "Standing up...";
+    if (newStage === "up" && kneeAngle > 110) corrections.push("Go lower for a full rep");
   }
 
-  return { ...state, reps: newReps, stage: newStage, feedback: newFeedback, currentAngle: angle };
+  if (corrections.length > 0) primaryFeedback = "Needs correction";
+
+  let accuracyScore = 100;
+  if (backAngle < 90) accuracyScore -= 20;
+  if (kneeAngle > 100 && newStage === "down") accuracyScore = calculateAccuracy(kneeAngle, 70, 95, 60, 110);
+  accuracyScore = Math.max(0, Math.min(100, Math.round(accuracyScore)));
+
+  return { ...state, reps: newReps, stage: newStage, feedback: primaryFeedback, corrections, currentAngle: Math.round(kneeAngle), accuracyScore };
 };
 
 export const evaluateShoulderRaise = (landmarks, state) => {
-  // Lateral raise. Right side: hip=24, shoulder=12, elbow=14
   const hip = getLandmark(landmarks, 24);
   const shoulder = getLandmark(landmarks, 12);
   const elbow = getLandmark(landmarks, 14);
+  const wrist = getLandmark(landmarks, 16);
 
-  if (!hip || !shoulder || !elbow) return state;
+  if (!hip || !shoulder || !elbow || !wrist) return state;
 
   const angle = calculateAngle(hip, shoulder, elbow);
+  const armStraightness = calculateAngle(shoulder, elbow, wrist);
+
   let newStage = state.stage;
   let newReps = state.reps;
-  let newFeedback = "Good form";
+  let primaryFeedback = "Good form";
+  let corrections = [];
 
-  // Arms down: angle < 30, Arms up: angle > 80
+  if (armStraightness < 150) corrections.push("Keep your arms relatively straight");
+
   if (angle < 30) {
     newStage = "down";
   }
@@ -92,15 +135,26 @@ export const evaluateShoulderRaise = (landmarks, state) => {
     newReps += 1;
   }
 
-  if (angle > 90) {
-    newFeedback = "Don't raise too high";
+  if (angle > 95) {
+    corrections.push("Don't raise arms above shoulder level");
   }
 
-  return { ...state, reps: newReps, stage: newStage, feedback: newFeedback, currentAngle: angle };
+  if (angle > 30 && angle < 80) {
+    primaryFeedback = "Raising...";
+  }
+
+  if (corrections.length > 0) primaryFeedback = "Needs correction";
+
+  let accuracyScore = 100;
+  if (armStraightness < 150) accuracyScore -= 15;
+  if (angle > 100) accuracyScore -= 25; // Penalty for raising too high
+  if (newStage === 'up' && angle < 80) accuracyScore = calculateAccuracy(angle, 80, 95, 60, 110);
+  accuracyScore = Math.max(0, Math.min(100, Math.round(accuracyScore)));
+
+  return { ...state, reps: newReps, stage: newStage, feedback: primaryFeedback, corrections, currentAngle: Math.round(angle), accuracyScore };
 };
 
 export const evaluateKneeExtension = (landmarks, state) => {
-  // Right leg: hip=24, knee=26, ankle=28
   const hip = getLandmark(landmarks, 24);
   const knee = getLandmark(landmarks, 26);
   const ankle = getLandmark(landmarks, 28);
@@ -110,9 +164,9 @@ export const evaluateKneeExtension = (landmarks, state) => {
   const angle = calculateAngle(hip, knee, ankle);
   let newStage = state.stage;
   let newReps = state.reps;
-  let newFeedback = "Good form";
+  let primaryFeedback = "Good form";
+  let corrections = [];
 
-  // Sitting: angle ~ 90, Extended: angle ~ 180
   if (angle < 110) {
     newStage = "down";
   }
@@ -122,30 +176,39 @@ export const evaluateKneeExtension = (landmarks, state) => {
   }
 
   if (angle < 160 && angle > 110) {
-     newFeedback = "Extend fully";
+    if (newStage === "down") primaryFeedback = "Extending...";
+    else primaryFeedback = "Lowering...";
+    
+    if (newStage === "down" && angle > 130) corrections.push("Extend fully for maximum benefit");
   }
 
-  return { ...state, reps: newReps, stage: newStage, feedback: newFeedback, currentAngle: angle };
+  if (corrections.length > 0) primaryFeedback = "Needs correction";
+
+  let accuracyScore = 100;
+  if (newStage === 'up') accuracyScore = calculateAccuracy(angle, 165, 180, 150, 190);
+  accuracyScore = Math.max(0, Math.min(100, Math.round(accuracyScore)));
+
+  return { ...state, reps: newReps, stage: newStage, feedback: primaryFeedback, corrections, currentAngle: Math.round(angle), accuracyScore };
 };
 
 export const evaluateHipAbduction = (landmarks, state) => {
-  // We can measure the angle between the two legs:
-  // left knee=25, left hip=23 or right hip=24, right knee=26.
-  // Actually, let's use vertical line from hip or just angle between two hips and knee.
-  // Left hip = 23, Right hip = 24, Right knee = 26
   const leftHip = getLandmark(landmarks, 23);
   const rightHip = getLandmark(landmarks, 24);
   const rightKnee = getLandmark(landmarks, 26);
+  const shoulder = getLandmark(landmarks, 12);
 
-  if (!leftHip || !rightHip || !rightKnee) return state;
+  if (!leftHip || !rightHip || !rightKnee || !shoulder) return state;
 
   const angle = calculateAngle(leftHip, rightHip, rightKnee);
+  const torsoAngle = calculateAngle(shoulder, rightHip, rightKnee);
+
   let newStage = state.stage;
   let newReps = state.reps;
-  let newFeedback = "Good form";
+  let primaryFeedback = "Good form";
+  let corrections = [];
 
-  // Standing straight: angle ~ 90
-  // Abducted: angle > 110
+  if (torsoAngle < 150) corrections.push("Keep your torso straight, don't lean");
+
   if (angle < 100) {
     newStage = "down";
   }
@@ -154,5 +217,16 @@ export const evaluateHipAbduction = (landmarks, state) => {
     newReps += 1;
   }
 
-  return { ...state, reps: newReps, stage: newStage, feedback: newFeedback, currentAngle: angle };
+  if (angle > 100 && angle <= 115) {
+     primaryFeedback = "Abducting...";
+  }
+
+  if (corrections.length > 0) primaryFeedback = "Needs correction";
+
+  let accuracyScore = 100;
+  if (torsoAngle < 150) accuracyScore -= 20;
+  if (newStage === 'up') accuracyScore = calculateAccuracy(angle, 115, 140, 105, 150);
+  accuracyScore = Math.max(0, Math.min(100, Math.round(accuracyScore)));
+
+  return { ...state, reps: newReps, stage: newStage, feedback: primaryFeedback, corrections, currentAngle: Math.round(angle), accuracyScore };
 };

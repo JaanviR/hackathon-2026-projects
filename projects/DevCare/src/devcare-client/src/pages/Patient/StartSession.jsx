@@ -44,8 +44,13 @@ export default function StartSession() {
     reps: 0,
     stage: 'down',
     feedback: 'Get ready',
-    currentAngle: 0
+    corrections: [],
+    currentAngle: 0,
+    accuracyScore: 100
   });
+  
+  const [motivation, setMotivation] = useState("");
+  const [currentTip, setCurrentTip] = useState("Control both up and down motion");
   const [results, setResults] = useState([]); // Array to store final results
   const [timeElapsed, setTimeElapsed] = useState(0);
 
@@ -119,6 +124,36 @@ export default function StartSession() {
     return () => clearInterval(interval);
   }, [sessionActive, timeElapsed]);
 
+  // Tip Rotation System
+  useEffect(() => {
+    if (!sessionActive) return;
+    const tipsList = [
+      "Breathe steadily",
+      "Control both up and down motion",
+      "Avoid jerky movement",
+      "Focus on the muscle contraction",
+      "Keep your core engaged"
+    ];
+    let idx = 0;
+    const tipInterval = setInterval(() => {
+      idx = (idx + 1) % tipsList.length;
+      setCurrentTip(tipsList[idx]);
+    }, 6000);
+    return () => clearInterval(tipInterval);
+  }, [sessionActive]);
+
+  // Motivation Engine
+  useEffect(() => {
+    if (exerciseState.reps > 0 && exerciseState.reps % 3 === 0) {
+      const msgs = ["Great job! 💪", "Halfway there! 🔥", "Keep pushing! 🚀", "Excellent pace! ⚡"];
+      setMotivation(msgs[Math.floor(Math.random() * msgs.length)]);
+      
+      // Clear motivation after 3 seconds
+      const timeout = setTimeout(() => setMotivation(""), 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [exerciseState.reps]);
+
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -140,11 +175,13 @@ export default function StartSession() {
 
       if (plan && currentExerciseIndex < plan.exercises.length - 1) {
         // Add small delay between exercises
-        setExerciseState({ reps: 0, stage: 'down', feedback: 'Switching exercise...', currentAngle: 0 });
+        setExerciseState({ reps: 0, stage: 'down', feedback: 'Switching exercise...', corrections: [], currentAngle: 0, accuracyScore: 100 });
+        setMotivation("Exercise Complete! Get ready for the next one.");
         
         setTimeout(() => {
           setCurrentExerciseIndex(prev => prev + 1);
-          setExerciseState({ reps: 0, stage: 'down', feedback: 'Get ready', currentAngle: 0 });
+          setExerciseState({ reps: 0, stage: 'down', feedback: 'Get ready', corrections: [], currentAngle: 0, accuracyScore: 100 });
+          setMotivation("");
           setTimeElapsed(0);
           isCompletingRef.current = false;
         }, 1500);
@@ -206,7 +243,10 @@ export default function StartSession() {
         if (
           newState.reps !== exerciseStateRef.current.reps ||
           newState.stage !== exerciseStateRef.current.stage ||
-          newState.feedback !== exerciseStateRef.current.feedback
+          newState.feedback !== exerciseStateRef.current.feedback ||
+          JSON.stringify(newState.corrections) !== JSON.stringify(exerciseStateRef.current.corrections) ||
+          Math.abs(newState.currentAngle - exerciseStateRef.current.currentAngle) > 2 ||
+          newState.accuracyScore !== exerciseStateRef.current.accuracyScore
         ) {
           setExerciseState(newState);
 
@@ -378,37 +418,83 @@ export default function StartSession() {
                     </div>
                   </div>
 
-                  {/* Real-time Feedback */}
-                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-6">
-                    <h3 className="font-semibold text-[var(--color-text)] mb-4">Live Feedback</h3>
-                    <div className={`rounded-lg p-4 text-center border border-[var(--color-border)] transition-colors duration-300 ${
-                      exerciseState.feedback === 'Good form' ? 'bg-green-50 border-green-200' : 
-                      exerciseState.feedback === 'Get ready' ? 'bg-white' : 'bg-yellow-50 border-yellow-200'
+                  {/* Real-time Feedback & Coaching */}
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-6 shadow-sm">
+                    <h3 className="font-semibold text-[var(--color-text)] mb-4">Live Coaching</h3>
+                    
+                    {/* Primary Feedback */}
+                    <div className={`rounded-xl p-5 text-center border-2 transition-all duration-300 shadow-sm mb-4 ${
+                      exerciseState.feedback === 'Good form' ? 'bg-green-50 border-green-400 text-green-700' : 
+                      exerciseState.feedback === 'Get ready' ? 'bg-white border-slate-200 text-slate-500' : 'bg-amber-50 border-amber-400 text-amber-700'
                     }`}>
-                      <p className={`text-sm font-semibold ${
-                        exerciseState.feedback === 'Good form' ? 'text-green-700' : 
-                        exerciseState.feedback === 'Get ready' ? 'text-[var(--color-text-muted)]' : 'text-yellow-700'
-                      }`}>
+                      <p className="text-xl font-extrabold tracking-tight">
                         {exerciseState.feedback}
                       </p>
+                      
+                      {/* Form Corrections Array */}
+                      {exerciseState.corrections?.length > 0 && (
+                        <div className="mt-3 text-left">
+                           <ul className="space-y-1.5">
+                              {exerciseState.corrections.map((corr, idx) => (
+                                <li key={idx} className="flex items-start gap-2 text-sm font-semibold text-amber-800">
+                                   <span className="text-amber-500 mt-0.5">⚠️</span> {corr}
+                                </li>
+                              ))}
+                           </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Angle & Accuracy Dashboard */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                       <div className="bg-white rounded-xl p-3 border border-slate-200 text-center shadow-sm">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Current Angle</p>
+                          <p className="text-2xl font-black text-slate-700 mt-1">{exerciseState.currentAngle || 0}°</p>
+                       </div>
+                       <div className="bg-white rounded-xl p-3 border border-slate-200 text-center shadow-sm relative overflow-hidden">
+                          <div 
+                             className="absolute bottom-0 left-0 h-1 bg-blue-500 transition-all duration-300"
+                             style={{ width: `${exerciseState.accuracyScore}%` }}
+                          ></div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Live Accuracy</p>
+                          <p className="text-2xl font-black text-blue-600 mt-1">{exerciseState.accuracyScore || 0}%</p>
+                       </div>
+                    </div>
+
+                    {/* Motivation Banner */}
+                    <div className="h-10">
+                       {motivation && (
+                          <div className="animate-in slide-in-from-bottom-2 fade-in bg-blue-600 text-white font-bold rounded-lg py-2 px-4 text-center shadow-md">
+                             {motivation}
+                          </div>
+                       )}
+                    </div>
+
+                    {/* Rotating Tip */}
+                    <div className="mt-2 pt-4 border-t border-slate-200/50">
+                       <p className="text-xs font-semibold text-slate-500 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
+                          Tip: {currentTip}
+                       </p>
                     </div>
                   </div>
 
                   {/* Session Stats */}
-                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-sm">
                     <h3 className="font-semibold text-[var(--color-text)] mb-4">Session Stats</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-xs text-[var(--color-text-muted)]">Time Elapsed</p>
-                        <p className="mt-1 text-lg font-bold text-[var(--color-text)]">{formatTime(timeElapsed)}</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                        <p className="text-[10px] uppercase font-bold text-slate-400">Time</p>
+                        <p className="text-lg font-black text-slate-700 mt-1">{formatTime(timeElapsed)}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-[var(--color-text-muted)]">Reps Completed</p>
-                        <p className="mt-1 text-3xl font-bold text-[var(--color-primary)]">{exerciseState.reps} <span className="text-lg text-[var(--color-text-muted)]">/ {currentExercise?.targetReps}</span></p>
+                      <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+                        <p className="text-[10px] uppercase font-bold text-blue-400">Reps</p>
+                        <p className="text-xl font-black text-blue-600 mt-1 leading-none">{exerciseState.reps}</p>
+                        <p className="text-[10px] font-bold text-blue-400 mt-1">/ {currentExercise?.targetReps}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-[var(--color-text-muted)]">Phase</p>
-                        <p className="mt-1 text-lg font-bold text-[var(--color-success)] capitalize">{exerciseState.stage}</p>
+                      <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
+                        <p className="text-[10px] uppercase font-bold text-emerald-500">Phase</p>
+                        <p className="text-sm font-black text-emerald-700 mt-2 capitalize">{exerciseState.stage}</p>
                       </div>
                     </div>
                   </div>
