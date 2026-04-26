@@ -104,3 +104,14 @@ class ExerciseResult(models.Model):
 
 	def __str__(self):
 		return f"Session #{self.session_id} - {self.exercise.name}"
+
+class DoctorFeedback(models.Model):
+	doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="given_feedback")
+	patient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="received_feedback")
+	session = models.ForeignKey(ExerciseSession, on_delete=models.CASCADE, related_name="feedback")
+	rating = models.IntegerField()
+	guidance = models.TextField()
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f"Feedback by {self.doctor.username} for {self.patient.username}"

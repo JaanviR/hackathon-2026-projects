@@ -10,6 +10,7 @@ from .models import (
     ExerciseTemplate,
     RehabPlan,
     RehabPlanExercise,
+    DoctorFeedback,
 )
 
 
@@ -223,3 +224,32 @@ class ExerciseSessionSerializer(serializers.ModelSerializer):
     def get_results(self, obj):
         rows = obj.results.select_related("exercise").order_by("order", "id")
         return ExerciseResultSerializer(rows, many=True).data
+
+class DoctorFeedbackSerializer(serializers.ModelSerializer):
+    patient_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source='patient',
+        write_only=True
+    )
+    session_id = serializers.PrimaryKeyRelatedField(
+        queryset=ExerciseSession.objects.all(),
+        source='session',
+        write_only=True
+    )
+    patient = serializers.StringRelatedField(read_only=True)
+    session = serializers.IntegerField(source='session.id', read_only=True)
+
+    class Meta:
+        model = DoctorFeedback
+        fields = ["id", "doctor", "patient_id", "session_id", "patient", "session", "rating", "guidance", "created_at"]
+        read_only_fields = ["doctor", "created_at"]
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def validate_guidance(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Guidance cannot be empty.")
+        return value

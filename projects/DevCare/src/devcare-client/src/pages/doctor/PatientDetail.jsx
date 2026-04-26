@@ -229,7 +229,7 @@ function PatientDetail() {
                 <p className="text-sm text-slate-500 font-medium mt-1">Timeline of assessments and adjustments</p>
               </div>
               <Link 
-                to="/doctor/feedback"
+                to={`/doctor/feedback/${id}`}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-md"
               >
                 <Plus size={16} /> New Entry
