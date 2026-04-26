@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -13,8 +13,10 @@ import {
   MessageSquare,
   Pill,
   QrCode,
+  Send,
   Stethoscope,
   User,
+  FileText as FileTextIcon,
 } from "lucide-react";
 import { generateBrief, getDrugWarnings, getPatient, getQr } from "./api/careRelayApi";
 import { compactCondition, display, shortMedName, titleCase } from "./utils/format";
@@ -154,7 +156,7 @@ export default function App() {
           <MitchellIDPlaceholder />
         )}
         {activePatient === "mitchell" && activeView === "chat" && (
-          <ChatPlaceholder patientName="James R. Mitchell" />
+          <MitchellChat />
         )}
       </main>
     </div>
@@ -211,6 +213,173 @@ function ChatPlaceholder({ patientName }) {
             <button disabled>Send</button>
           </div>
           <span className="coming-soon-badge">Coming Soon</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Mitchell RAG Chat — real implementation
+   ═══════════════════════════════════════════════════════════ */
+
+const API_BASE = "http://127.0.0.1:5000";
+
+function MitchellChat() {
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content: "Hello! I have access to James Mitchell's full EHR record (28 pages). Ask me anything about his medical history, medications, lab results, or procedures.",
+      sources: [],
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [pdfPage, setPdfPage] = useState(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function handleSend() {
+    const q = input.trim();
+    if (!q || loading) return;
+
+    const userMsg = { role: "user", content: q, sources: [] };
+    setMessages((prev) => [...prev, userMsg]);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const resp = await fetch(`${API_BASE}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q }),
+      });
+      const data = await resp.json();
+      if (data.error) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Error: ${data.error}`, sources: [] },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.answer,
+            sources: data.sources || [],
+            sourceType: data.source_type,
+          },
+        ]);
+      }
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Unable to reach the backend. Is Flask running?", sources: [] },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  return (
+    <section className="page" style={{ padding: 0 }}>
+      <div className="chat-layout">
+        {/* ── Chat panel ── */}
+        <div className="chat-panel">
+          <div className="chat-header">
+            <MessageSquare size={18} />
+            <h2>Clinical Chat — James R. Mitchell</h2>
+            <span className="chat-badge">RAG · EHR PDF</span>
+          </div>
+
+          <div className="chat-messages">
+            {messages.map((msg, i) => (
+              <div key={i} className={`chat-msg ${msg.role}`}>
+                <div className="chat-msg-avatar">
+                  {msg.role === "user" ? "Dr" : "AI"}
+                </div>
+                <div className="chat-msg-body">
+                  <div className="chat-msg-text">{msg.content}</div>
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="chat-sources">
+                      <span className="chat-sources-label">Sources:</span>
+                      {msg.sources.map((s, j) => (
+                        <button
+                          key={j}
+                          className="chat-source-btn"
+                          onClick={() => setPdfPage(s.page)}
+                          title={s.snippet}
+                        >
+                          📄 Page {s.page}
+                        </button>
+                      ))}
+                      {msg.sourceType === "extractive" && (
+                        <span className="chat-source-fallback">Extractive (LLM unavailable)</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="chat-msg assistant">
+                <div className="chat-msg-avatar">AI</div>
+                <div className="chat-msg-body">
+                  <div className="chat-msg-text chat-loading">
+                    <Loader2 className="spin" size={16} />
+                    Searching EHR records...
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="chat-input-bar">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about medications, labs, procedures, history..."
+              disabled={loading}
+            />
+            <button onClick={handleSend} disabled={loading || !input.trim()}>
+              <Send size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── PDF viewer panel ── */}
+        <div className={`pdf-panel ${pdfPage ? "open" : ""}`}>
+          {pdfPage ? (
+            <>
+              <div className="pdf-panel-header">
+                <span>EHR Document — Page {pdfPage}</span>
+                <button className="pdf-close-btn" onClick={() => setPdfPage(null)}>✕</button>
+              </div>
+              <iframe
+                src={`${API_BASE}/api/pdf/mitchell#page=${pdfPage}`}
+                title="Mitchell EHR PDF"
+                className="pdf-iframe"
+              />
+            </>
+          ) : (
+            <div className="pdf-placeholder">
+              <FileTextIcon size={40} strokeWidth={1} />
+              <p>Click a source citation to view the EHR document</p>
+            </div>
+          )}
         </div>
       </div>
     </section>

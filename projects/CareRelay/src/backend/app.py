@@ -1,12 +1,14 @@
 import base64
 import io
+from pathlib import Path
 
 import qrcode
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from ai_brief import generate_brief
 from drug_check import check_interactions
 from fhir_utils import load_patient
+from rag_chat import answer as rag_answer
 
 app = Flask(__name__)
 CORS(app)
@@ -40,6 +42,33 @@ def get_interactions():
 @app.route("/api/ner", methods=["POST"])
 def get_entities():
     return jsonify({"message": "NER endpoint ready"})
+
+
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    data = request.get_json(silent=True) or {}
+    query = data.get("question", "").strip()
+    if not query:
+        return jsonify({"error": "Provide a 'question' field."}), 400
+    try:
+        result = rag_answer(query)
+        return jsonify(result)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+PDF_FILE = Path(__file__).resolve().parent.parent / "data" / "Patient_EHR_James_Mitchell.pdf"
+
+
+@app.route("/api/pdf/mitchell")
+def serve_mitchell_pdf():
+    if not PDF_FILE.exists():
+        return jsonify({"error": "PDF not found"}), 404
+    return send_file(
+        PDF_FILE,
+        mimetype="application/pdf",
+        download_name="Patient_EHR_James_Mitchell.pdf",
+    )
 
 
 @app.route("/api/qr/<patient_id>")
