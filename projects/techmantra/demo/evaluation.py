@@ -30,175 +30,14 @@ from core.triage import triage
 # expected_risk is what a clinician would expect — used to measure accuracy.
 # Covers: HIGH emergencies, MEDIUM doctor-needed, LOW home care, edge cases
 
-TEST_CASES = [
-    # ── HIGH RISK CASES ───────────────────────────────────────────────
-    {
-        "id": 1,
-        "patient": "Male, 58, hypertension, no allergies",
-        "profile": {"age": 58, "conditions": "Hypertension", "allergies": "None"},
-        "input": "I have sudden severe chest pain radiating to my left arm, I am sweating and feel short of breath",
-        "expected_risk": "HIGH",
-        "clinical_note": "Classic heart attack presentation"
-    },
-    {
-        "id": 2,
-        "patient": "Female, 25, no conditions, no allergies",
-        "profile": {"age": 25, "conditions": "None", "allergies": "None"},
-        "input": "I have a sudden severe headache, high fever of 103, my neck is very stiff and I am sensitive to light",
-        "expected_risk": "HIGH",
-        "clinical_note": "Classic bacterial meningitis triad"
-    },
-    {
-        "id": 3,
-        "patient": "Male, 40, no conditions, no allergies",
-        "profile": {"age": 40, "conditions": "None", "allergies": "None"},
-        "input": "I cannot breathe properly, my throat feels like it is closing and my face is swelling up",
-        "expected_risk": "HIGH",
-        "clinical_note": "Anaphylaxis — airway emergency"
-    },
-    {
-        "id": 4,
-        "patient": "Female, 67, diabetes, aspirin allergy",
-        "profile": {"age": 67, "conditions": "Type 2 Diabetes", "allergies": "Aspirin"},
-        "input": "I passed out earlier and now I feel confused and dizzy, my speech feels strange",
-        "expected_risk": "HIGH",
-        "clinical_note": "Possible stroke — FAST symptoms"
-    },
-    {
-        "id": 5,
-        "patient": "Male, 30, no conditions, no allergies",
-        "profile": {"age": 30, "conditions": "None", "allergies": "None"},
-        "input": "I am having a seizure, my whole body is shaking and I cannot control it",
-        "expected_risk": "HIGH",
-        "clinical_note": "Active seizure — neurological emergency"
-    },
+def load_test_cases():
+    test_data_path = os.path.join(os.path.dirname(__file__), '..', 'src', 'test_data', 'test_cases.json')
+    with open(test_data_path, 'r') as f:
+        return json.load(f)
 
-    # ── MEDIUM RISK CASES ─────────────────────────────────────────────
-    {
-        "id": 6,
-        "patient": "Female, 34, no conditions, penicillin allergy",
-        "profile": {"age": 34, "conditions": "None", "allergies": "Penicillin"},
-        "input": "I have had ear pain for 3 days, mild fever of 100.5, and my hearing feels muffled in my right ear",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Ear infection — needs antibiotics"
-    },
-    {
-        "id": 7,
-        "patient": "Male, 45, no conditions, no allergies",
-        "profile": {"age": 45, "conditions": "None", "allergies": "None"},
-        "input": "I have a high fever of 102, chills, body aches, and I have been coughing for 4 days with yellow mucus",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Possible bacterial respiratory infection"
-    },
-    {
-        "id": 8,
-        "patient": "Female, 52, diabetes, no allergies",
-        "profile": {"age": 52, "conditions": "Type 2 Diabetes", "allergies": "None"},
-        "input": "I have a painful burning sensation when I urinate, lower abdominal pain, and a low fever for 2 days",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "UTI — diabetes increases complication risk"
-    },
-    {
-        "id": 9,
-        "patient": "Male, 22, asthma, no allergies",
-        "profile": {"age": 22, "conditions": "Asthma", "allergies": "None"},
-        "input": "My asthma inhaler is not working, I am wheezing badly and having trouble breathing after exercise",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Asthma exacerbation — needs medical evaluation"
-    },
-    {
-        "id": 10,
-        "patient": "Female, 29, no conditions, no allergies",
-        "profile": {"age": 29, "conditions": "None", "allergies": "None"},
-        "input": "I have had a severe sore throat for 5 days with white patches on my tonsils and fever of 101",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Likely strep throat — needs antibiotics"
-    },
+TEST_CASES = load_test_cases()
 
-    # ── LOW RISK CASES ────────────────────────────────────────────────
-    {
-        "id": 11,
-        "patient": "Male, 32, no conditions, no allergies",
-        "profile": {"age": 32, "conditions": "None", "allergies": "None"},
-        "input": "I have a runny nose, sneezing, mild sore throat, and a slight cough for 2 days. No fever.",
-        "expected_risk": "LOW",
-        "clinical_note": "Common cold — home care appropriate"
-    },
-    {
-        "id": 12,
-        "patient": "Female, 28, seasonal allergies, no allergies to medication",
-        "profile": {"age": 28, "conditions": "Seasonal Allergies", "allergies": "None"},
-        "input": "My eyes are itchy and watery, I keep sneezing, and my nose is runny. No fever.",
-        "expected_risk": "LOW",
-        "clinical_note": "Seasonal allergies — antihistamine appropriate"
-    },
-    {
-        "id": 13,
-        "patient": "Male, 38, no conditions, no allergies",
-        "profile": {"age": 38, "conditions": "None", "allergies": "None"},
-        "input": "I have indigestion and heartburn after eating a large spicy meal. No chest pain or fever.",
-        "expected_risk": "LOW",
-        "clinical_note": "Indigestion — antacid appropriate"
-    },
-    {
-        "id": 14,
-        "patient": "Female, 24, no conditions, no allergies",
-        "profile": {"age": 24, "conditions": "None", "allergies": "None"},
-        "input": "I have a mild tension headache at the front of my head. No fever, no stiff neck, no vision changes.",
-        "expected_risk": "LOW",
-        "clinical_note": "Tension headache — home care appropriate"
-    },
-    {
-        "id": 15,
-        "patient": "Male, 50, no conditions, no allergies",
-        "profile": {"age": 50, "conditions": "None", "allergies": "None"},
-        "input": "I have mild lower back pain after lifting boxes yesterday. No numbness, no bladder issues.",
-        "expected_risk": "LOW",
-        "clinical_note": "Musculoskeletal back pain — rest and ice appropriate"
-    },
 
-    # ── EDGE CASES ────────────────────────────────────────────────────
-    {
-        "id": 16,
-        "patient": "Female, 35, diabetes, penicillin allergy",
-        "profile": {"age": 35, "conditions": "Type 2 Diabetes", "allergies": "Penicillin"},
-        "input": "I have a fever and headache but no stiff neck, no chest pain, no difficulty breathing",
-        "expected_risk": "LOW",
-        "clinical_note": "Negation test — should NOT escalate despite fever+headache"
-    },
-    {
-        "id": 17,
-        "patient": "Male, 42, no conditions, no allergies",
-        "profile": {"age": 42, "conditions": "None", "allergies": "None"},
-        "input": "I am worried about meningitis because my friend has it but I just have a slight headache and no other symptoms",
-        "expected_risk": "LOW",
-        "clinical_note": "Anxiety mention test — should not over-escalate"
-    },
-    {
-        "id": 18,
-        "patient": "Female, 60, hypertension, no allergies",
-        "profile": {"age": 60, "conditions": "Hypertension", "allergies": "None"},
-        "input": "I feel dizzy when I stand up quickly and I felt faint once this morning but I am fine now",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Orthostatic hypotension in hypertensive patient — warrants evaluation"
-    },
-    {
-        "id": 19,
-        "patient": "Male, 19, no conditions, no allergies",
-        "profile": {"age": 19, "conditions": "None", "allergies": "None"},
-        "input": "aaa my stomch hrts rly bad",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Typo/informal input test — pipeline should still function"
-    },
-    {
-        "id": 20,
-        "patient": "Female, 45, no conditions, no allergies",
-        "profile": {"age": 45, "conditions": "None", "allergies": "None"},
-        "input": "I have had nausea and vomiting for 24 hours and I cannot keep any water down. I feel very weak.",
-        "expected_risk": "MEDIUM",
-        "clinical_note": "Dehydration risk — needs medical evaluation"
-    },
-]
 
 # ── RUN PIPELINE ──────────────────────────────────────────────────────
 
@@ -214,7 +53,8 @@ def run_test_case(case):
         entities = extract_entities(case["input"])
 
         # Step 2 — Preprocessing
-        payload = preprocess(case["input"], entities, case["profile"])
+        payload = preprocess(case["input"], entities, case["profile"], duration=case.get("ui_duration", "not specified"),
+    ui_severity=case.get("ui_severity", None))
 
         # Step 3 — RAG retrieval
         context = get_rag_context(case["input"], top_k=5)
@@ -226,8 +66,9 @@ def run_test_case(case):
         risk_tier = triage(
             diagnosis.get("confidence_score", 0),
             payload.get("severity", "low"),
-            payload.get("duration", "a few days"),        # add this
-            diagnosis.get("top_conditions", [{}])[0].get("name", "unknown")  # add this
+            payload.get("duration", "not specified"),
+            diagnosis.get("top_conditions", [{}])[0].get("name", "unknown"),
+            llm_risk_tier=diagnosis.get("risk_tier")
         )
 
         # Check if result matches expected

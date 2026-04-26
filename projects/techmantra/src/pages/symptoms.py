@@ -74,7 +74,7 @@ def show():
                 try:
                     full_narrative = f"{raw_text}. Reported Severity: {ui_severity}. Duration: {duration}."
                     ner_results = extract_entities(full_narrative)
-                    final_payload = preprocess(full_narrative, ner_results, user_profile)
+                    final_payload = preprocess(full_narrative, ner_results, user_profile, duration, ui_severity)
                     context = get_rag_context(full_narrative, top_k=5)
                     ai_result = run_inference(final_payload, context)
                     
@@ -106,6 +106,15 @@ def show():
     if st.session_state.diagnosis:
         risk = st.session_state.diagnosis.get('risk_tier', 'LOW').upper()
         st.info(f"Analysis complete. Risk Tier: **{risk}**")
+
+        # 2. Display Urgent Banner
+        if risk == "HIGH":
+            st.error("🚨 **EMERGENCY: Please seek immediate medical attention.**")
+        elif risk == "MEDIUM":
+            st.warning("⚠️ **MEDIUM: Follow-up with a healthcare provider soon.**")
+        else:
+            st.success("✅ **LOW RISK: Manage symptoms at home and monitor.**")
+
         
         if st.button("Proceed to Full Medical Report ➡️", use_container_width=True):
             st.session_state["current_page"] = "Results"

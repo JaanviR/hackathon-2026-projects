@@ -15,46 +15,153 @@ _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 _REMEDY_DB_PATH = os.path.join(_THIS_DIR, "..", "db", "remedy_db.json")
 
 
-def triage(confidence_score, severity, duration, condition_name):
-    """
-    Advanced Triage Logic:
-    - Red Flags (Chest Pain, etc.) -> Forced MEDIUM/HIGH
-    - Green Lanes (Cold, Flu, etc.) -> Forced LOW (unless severe/chronic)
-    - Chronic Rule -> Escalate if symptoms persist
-    """
+# def triage(confidence_score, severity, duration, condition_name):
+#     """
+#     Advanced Triage Logic:
+#     - Red Flags (Chest Pain, etc.) -> Forced MEDIUM/HIGH
+#     - Green Lanes (Cold, Flu, etc.) -> Forced LOW (unless severe/chronic)
+#     - Chronic Rule -> Escalate if symptoms persist
+#     """
+#     severity = severity.lower()
+#     duration = duration.lower()
+#     condition = condition_name.lower()
+
+#     # --- 1. CRITICAL RED FLAGS (Force Escalation) ---
+#     red_flags = ["chest pain", "shortness of breath", "heart", "stroke", "vision loss"]
+#     if any(rf in condition for rf in red_flags):
+#         if severity in ["severe", "unbearable"]:
+#             return "HIGH"
+#         return "MEDIUM" # Even mild chest pain is never LOW
+
+#     # --- 2. GREEN LANES (Prevent Overreaction for Minor Illness) ---
+#     minor_illness = ["common cold", "flu", "seasonal allergies", "sore throat", "cough"]
+#     if any(mi in condition for mi in minor_illness):
+#         # If it's a cold but the pain is "Unbearable", still flag it
+#         if severity == "unbearable":
+#             return "MEDIUM"
+#         # If a cold lasts more than a week, it might be a sinus infection/pneumonia
+#         if duration == "more than a week":
+#             return "MEDIUM"
+#         return "LOW"
+
+#     # --- 3. DURATION-BASED ESCALATION (The "Chronic" Rule) ---
+#     if duration == "more than a week":
+#         return "MEDIUM"
+
+#     # --- 4. SEVERITY-BASED ESCALATION ---
+#     if severity == "unbearable":
+#         return "HIGH"
+#     if severity == "severe":
+#         return "MEDIUM" if confidence_score < 0.8 else "HIGH"
+
+#     # --- 5. DEFAULT ---
+#     return "LOW"
+
+# def triage(confidence_score, severity, duration, condition_name):
+#     severity = severity.lower()
+#     duration = duration.lower()
+#     condition = condition_name.lower()
+
+#     # --- 0. LOW CONFIDENCE FALLBACK ---
+#     if confidence_score < 0.4:
+#         return "UNCERTAIN"
+
+#     # --- 1. CRITICAL RED FLAGS ---
+#     red_flags = ["chest pain", "shortness of breath", "heart", "stroke", "vision loss", 
+#                  "seizure", "unconscious", "anaphylaxis", "meningitis"]
+#     if any(rf in condition for rf in red_flags):
+#         if severity in ["severe", "unbearable"]:
+#             return "HIGH"
+#         return "MEDIUM"
+
+#     # --- 2. GREEN LANES ---
+#     minor_illness = ["common cold", "flu", "seasonal allergies", "sore throat", 
+#                      "cough", "indigestion", "headache", "back pain"]
+#     if any(mi in condition for mi in minor_illness):
+#         if severity == "unbearable":
+#             return "MEDIUM"
+#         if duration == "more than a week":
+#             return "MEDIUM"
+#         return "LOW"
+
+#     # --- 3. DURATION-BASED ESCALATION ---
+#     if duration == "more than a week":
+#         return "MEDIUM"
+
+#     # --- 4. SEVERITY-BASED ESCALATION ---
+#     if severity == "unbearable":
+#         return "HIGH"
+#     if severity == "severe":
+#         return "MEDIUM" if confidence_score < 0.8 else "HIGH"
+#     if severity == "moderate":
+#         return "MEDIUM"
+
+#     # --- 5. DEFAULT ---
+#     return "LOW"
+
+def triage(confidence_score, severity, duration, condition_name, llm_risk_tier=None):
+    
+    # If LLM is confident AND gave a risk tier, use it as a strong signal
+    if llm_risk_tier and confidence_score >= 0.75:
+        llm_tier = llm_risk_tier.upper()
+        if llm_tier == "HIGH":
+            return "HIGH"
+        # Don't blindly trust LOW from LLM — still run our logic below
+        # But trust HIGH and MEDIUM since under-triaging is more dangerous
+        if llm_tier == "MEDIUM":
+            # Still check red flags in case we need to escalate to HIGH
+            pass
+
     severity = severity.lower()
     duration = duration.lower()
     condition = condition_name.lower()
 
-    # --- 1. CRITICAL RED FLAGS (Force Escalation) ---
-    red_flags = ["chest pain", "shortness of breath", "heart", "stroke", "vision loss"]
+    if confidence_score < 0.4:
+        return "UNCERTAIN"
+
+    # --- 1. RED FLAGS ---
+    red_flags = [
+        "chest pain", "shortness of breath", "heart", "stroke", "vision loss",
+        "seizure", "unconscious", "anaphylaxis", "meningitis", "difficulty breathing",
+        "cannot breathe", "throat closing", "face swelling", "passed out",
+        "confusion", "speech", "dizziness"   # stroke symptoms
+    ]
     if any(rf in condition for rf in red_flags):
         if severity in ["severe", "unbearable"]:
             return "HIGH"
-        return "MEDIUM" # Even mild chest pain is never LOW
+        # For classic emergencies, even mild severity = HIGH
+        critical = ["chest pain", "cannot breathe", "difficulty breathing", 
+                    "throat closing", "seizure", "anaphylaxis", "meningitis"]
+        if any(c in condition for c in critical):
+            return "HIGH"
+        return "MEDIUM"
 
-    # --- 2. GREEN LANES (Prevent Overreaction for Minor Illness) ---
-    minor_illness = ["common cold", "flu", "seasonal allergies", "sore throat", "cough"]
+    # --- 2. GREEN LANES ---
+    minor_illness = ["common cold", "flu", "seasonal allergies", "hay fever",
+                     "indigestion", "heartburn", "back pain", "tension headache"]
     if any(mi in condition for mi in minor_illness):
-        # If it's a cold but the pain is "Unbearable", still flag it
         if severity == "unbearable":
             return "MEDIUM"
-        # If a cold lasts more than a week, it might be a sinus infection/pneumonia
         if duration == "more than a week":
             return "MEDIUM"
         return "LOW"
 
-    # --- 3. DURATION-BASED ESCALATION (The "Chronic" Rule) ---
+    # --- 3. DURATION ESCALATION ---
     if duration == "more than a week":
         return "MEDIUM"
 
-    # --- 4. SEVERITY-BASED ESCALATION ---
+    # --- 4. SEVERITY ESCALATION ---
     if severity == "unbearable":
         return "HIGH"
     if severity == "severe":
         return "MEDIUM" if confidence_score < 0.8 else "HIGH"
+    if severity == "moderate":
+        return "MEDIUM"
 
-    # --- 5. DEFAULT ---
+    # --- 5. FALLBACK TO LLM TIER ---
+    if llm_risk_tier:
+        return llm_risk_tier.upper()
+
     return "LOW"
 
 def get_remedies_for_condition(condition_name):
