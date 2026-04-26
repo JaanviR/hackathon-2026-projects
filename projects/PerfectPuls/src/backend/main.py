@@ -207,6 +207,53 @@ async def analyze_website(request: AnalyzeRequest):
             status_code=500,
             detail=f"Website analysis failed: {str(e)}"
         )
+
+@app.post("/api/upload-policy", response_model=PDFProcessResponse)
+async def upload_policy(
+    file: UploadFile = File(...),
+    policy_name: str = Form(...),
+    upload_source: str = Form("frontend")
+):
+    """
+    Frontend-friendly alias for process-pdf endpoint
+    """
+    return await process_pdf(file, policy_name, upload_source)
+
+@app.get("/api/dashboard-data")
+async def get_dashboard_data():
+    """
+    Get dashboard data for the frontend
+    """
+    try:
+        # Get the latest policy data from Neo4j
+        policy_id = await neo4j_service.get_latest_policy_id()
+        
+        if not policy_id:
+            return {
+                "status": "no_policies",
+                "message": "No policies found",
+                "data": None
+            }
+        
+        # You can extend this to return actual user data from your database
+        # For now, return a success status so frontend knows backend is connected
+        return {
+            "status": "success", 
+            "message": "Backend connected",
+            "policy_id": policy_id,
+            "data": {
+                "total_policies": 1,
+                "last_updated": datetime.now().isoformat()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Dashboard data error: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Dashboard data error: {str(e)}",
+            "data": None
+        }
     
 
 if __name__ == "__main__":

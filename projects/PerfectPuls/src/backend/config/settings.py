@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     debug: bool = True
     host: str = "0.0.0.0"
     port: int = 8000
-    cors_origins: str = "chrome-extension://*"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,chrome-extension://*"
     
     # File Processing
     upload_dir: str = "./uploads"
