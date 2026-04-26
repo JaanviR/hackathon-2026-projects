@@ -84,7 +84,7 @@ function CareBot() {
         return
       }
 
-      const res = await fetch('http://localhost:8000/api/rehab/chatbot/', {
+      const res = await fetch('http://localhost:8000/api/carebot/chatbot/', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

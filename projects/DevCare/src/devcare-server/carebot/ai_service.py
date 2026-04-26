@@ -2,7 +2,7 @@ import google.generativeai as genai
 import json
 import logging
 from django.conf import settings
-from .models import ExerciseTemplate
+from rehab.models import ExerciseTemplate
 
 logger = logging.getLogger(__name__)
 
