@@ -103,7 +103,18 @@ function TherapyRoadmap() {
                   </div>
 
                   <button 
-                    onClick={() => navigate('/therapy-session', { state: { plan } })}
+                    onClick={async () => {
+                      try {
+                        // Call backend to start session
+                        const { startSession } = await import('../../api/rehabApi');
+                        const sessionData = await startSession(plan.id);
+                        navigate(`/start-session/${sessionData.id}`, { state: { plan, session: sessionData } });
+                      } catch (err) {
+                        console.error('Failed to start session on backend:', err);
+                        // Fallback navigation if backend is unavailable (using a dummy id)
+                        navigate(`/start-session/${plan.id}`, { state: { plan } });
+                      }
+                    }}
                     className="btn-primary w-full py-4 rounded-2xl flex items-center justify-center gap-3 shadow-lg shadow-blue-100 hover:scale-[1.02] active:scale-95 transition-all"
                   >
                     <Play className="h-5 w-5" />

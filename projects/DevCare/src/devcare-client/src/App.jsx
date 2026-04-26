@@ -23,6 +23,7 @@ import TherapyRoadmap from './pages/patient/TherapyRoadmap'
 import Progress from './pages/patient/Progress'
 import Feedback from './pages/patient/Feedback'
 import JoinDoctor from './pages/patient/JoinDoctor'
+import StartSession from './pages/patient/StartSession'
 
 function App() {
   return (
@@ -115,6 +116,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['patient']}>
               <TherapySession />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/start-session/:sessionId"
+          element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <StartSession />
             </ProtectedRoute>
           }
         />

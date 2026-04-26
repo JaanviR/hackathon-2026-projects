@@ -58,6 +58,19 @@ export async function startSession(planId) {
 }
 
 /**
+ * Patient: Complete a session and submit report
+ */
+export async function completeSession(sessionId, reportData) {
+  const res = await fetch(`${API_BASE}/rehab/sessions/${sessionId}/complete/`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(reportData),
+  })
+  if (!res.ok) throw new Error('Failed to complete session')
+  return res.json()
+}
+
+/**
  * Patient: Fetch my completed session history
  */
 export async function getSessionHistory() {

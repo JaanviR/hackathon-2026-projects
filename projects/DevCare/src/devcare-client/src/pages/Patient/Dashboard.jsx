@@ -106,7 +106,7 @@ function PatientDashboard() {
                     <Clock size={14} />
                     <span>Today at 2:30 PM</span>
                   </div>
-                  <button onClick={() => navigate('/therapy-session')} className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-sm hover:bg-slate-50 transition-all transform active:scale-95 shadow-lg">
+                  <button onClick={() => navigate('/my-sessions')} className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-sm hover:bg-slate-50 transition-all transform active:scale-95 shadow-lg">
                     Start Session
                   </button>
                 </div>
@@ -157,7 +157,7 @@ function PatientDashboard() {
             <section className="rounded-[2.5rem] bg-slate-50 p-10 border border-slate-100">
               <h3 className="mb-8 text-lg font-black text-slate-900 uppercase tracking-widest">Quick Actions</h3>
               <div className="flex flex-wrap gap-4">
-                <button onClick={() => navigate('/therapy-session')} className="btn-dark px-8 py-4 rounded-2xl flex items-center gap-3">
+                <button onClick={() => navigate('/my-sessions')} className="btn-dark px-8 py-4 rounded-2xl flex items-center gap-3">
                   <Activity size={18} />
                   Start Therapy
                 </button>
