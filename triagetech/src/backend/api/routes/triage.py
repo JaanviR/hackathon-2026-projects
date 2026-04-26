@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from api.schemas import TriageRequest, TriageResponse, ConditionResult
 from ml.severity_rules import run_triage
 from ml.nepali_nlp import translate_symptoms_list, detect_language
+from ml.doctor_data import POPULAR_DOCTORS
 
 router = APIRouter(prefix="/triage", tags=["triage"])
 
@@ -41,6 +42,44 @@ def assess_symptoms(request: TriageRequest):
         duration_days=request.duration_days,
     )
 
+    # specialist mapping
+    SPECIALIST_MAP = {
+        "chest pain": ("Cardiologist", "मुटु रोग विशेषज्ञ (Cardiologist)"),
+        "shortness of breath": ("Pulmonologist", "फोक्सो रोग विशेषज्ञ (Pulmonologist)"),
+        "stomach pain": ("Gastroenterologist", "पेट तथा आन्द्रा रोग विशेषज्ञ (Gastroenterologist)"),
+        "headache": ("Neurologist", "नसा रोग विशेषज्ञ (Neurologist)"),
+        "blurred vision": ("Ophthalmologist", "आँखा विशेषज्ञ (Ophthalmologist)"),
+        "fever": ("General Physician", "सामान्य चिकित्सक (General Physician)"),
+        "cough": ("General Physician", "सामान्य चिकित्सक (General Physician)"),
+        "sore throat": ("ENT Specialist", "नाक, कान, घाँटी विशेषज्ञ (ENT Specialist)"),
+    }
+
+    doctor_type = None
+    doctor_type_ne = None
+    specialist = None
+    specialist_ne = None
+
+    if result.confidence > 0:
+        doctor_type = "General Physician"
+        doctor_type_ne = "सामान्य चिकित्सक"
+        
+        if result.severity == "red":
+            doctor_type = "Emergency Medical Team"
+            doctor_type_ne = "आकस्मिक चिकित्सा टोली"
+        elif result.severity == "yellow":
+            # Check for specific specialists
+            for sym in result.matched_symptoms:
+                if sym.lower() in SPECIALIST_MAP:
+                    specialist, specialist_ne = SPECIALIST_MAP[sym.lower()]
+                    break
+
+    # Get suggested doctors for the specialist or doctor type
+    suggested_docs = []
+    if specialist and specialist in POPULAR_DOCTORS:
+        suggested_docs = POPULAR_DOCTORS[specialist]
+    elif doctor_type and doctor_type in POPULAR_DOCTORS:
+        suggested_docs = POPULAR_DOCTORS[doctor_type]
+
     return TriageResponse(
         severity=result.severity,
         severity_label=result.severity_label,
@@ -51,6 +90,11 @@ def assess_symptoms(request: TriageRequest):
         risk_flags=result.risk_flags,
         confidence=result.confidence,
         translated_symptoms=translated,
+        doctor_type=doctor_type,
+        doctor_type_ne=doctor_type_ne,
+        specialist_recommendation=specialist,
+        specialist_recommendation_ne=specialist_ne,
+        suggested_doctors=suggested_docs if suggested_docs else None,
     )
 
 

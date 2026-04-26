@@ -23,3 +23,8 @@ class TriageResponse(BaseModel):
     risk_flags: list[str]
     confidence: int
     translated_symptoms: Optional[list[str]] = None
+    doctor_type: Optional[str] = Field(None, description="Type of healthcare professional to visit")
+    specialist_recommendation: Optional[str] = Field(None, description="Specific specialist recommendation")
+    doctor_type_ne: Optional[str] = None
+    specialist_recommendation_ne: Optional[str] = None
+    suggested_doctors: Optional[list[dict]] = None
