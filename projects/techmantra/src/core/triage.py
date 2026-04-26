@@ -4,7 +4,16 @@
 # This is pure Python logic — no AI involved.
 # Low → home care, Medium → book doctor, High → call 911.
 
-import json  # For reading the remedy database file
+import json  
+import os
+
+# absolute path
+# __file__ is the path to this file (core/triage.py)
+# .parent.parent goes up two levels to project root
+# then down into db/remedy_db.json
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_REMEDY_DB_PATH = os.path.join(_THIS_DIR, "..", "db", "remedy_db.json")
+
 
 def triage(confidence_score, severity):
     """
@@ -40,10 +49,18 @@ def get_remedies_for_condition(condition_name):
     condition_name: string like "common cold" or "headache"
     Returns: dict with remedies and watch-for list, or None if not found
     """
-    # Open and parse our hand-curated remedy JSON file
-    # This file contains safe, source-backed home care suggestions
-    with open("db/remedy_db.json", "r") as f:
-        remedy_db = json.load(f)  # Parse JSON file into Python dict
+    # Load remedy database from JSON file
+    try:
+        with open(_REMEDY_DB_PATH, "r") as f:
+            remedy_db = json.load(f)
+    except FileNotFoundError:
+        # Remedy DB doesn't exist yet — return None gracefully
+        print(f"[triage] remedy_db.json not found at {_REMEDY_DB_PATH}")
+        return None
+    except json.JSONDecodeError:
+        # JSON file is malformed
+        print("[triage] remedy_db.json is not valid JSON")
+        return None
     
     # Normalize condition name to lowercase for case-insensitive matching
     condition_lower = condition_name.lower()
