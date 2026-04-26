@@ -74,7 +74,10 @@ def show():
                 try:
                     full_narrative = f"{raw_text}. Reported Severity: {ui_severity}. Duration: {duration}."
                     ner_results = extract_entities(full_narrative)
-                    final_payload = preprocess(full_narrative, ner_results, user_profile)
+                    
+                    # Included her duration/severity arguments for the backend
+                    final_payload = preprocess(full_narrative, ner_results, user_profile, duration, ui_severity)
+                    
                     context = get_rag_context(full_narrative, top_k=5)
                     ai_result = run_inference(final_payload, context)
                     
@@ -103,10 +106,50 @@ def show():
                 except Exception as e:
                     st.error(f"Analysis Failed: {e}")
 
+    # --- ADDED: HER UI BANNERS ---
     if st.session_state.diagnosis:
         risk = st.session_state.diagnosis.get('risk_tier', 'LOW').upper()
-        st.info(f"Analysis complete. Risk Tier: **{risk}**")
-        
-        if st.button("Proceed to Full Medical Report ➡️", use_container_width=True):
+
+        if risk == "HIGH":
+            st.markdown("""
+                <div style="background:#ff000020; border:2px solid #ff0000; 
+                     border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#cc0000; margin:0;">🚨 EMERGENCY</h2>
+                    <p style="color:#cc0000; font-size:18px; margin:8px 0;">
+                        Your symptoms require <strong>immediate medical attention.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+            st.link_button("📞 Call 911 Now", "tel:911", use_container_width=True, type="primary")
+            
+        elif risk == "MEDIUM":
+            st.markdown("""
+                <div style="background:#fff3cd; border:2px solid #ffc107;
+                     border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#856404; margin:0;">⚠️ MEDICAL ATTENTION NEEDED</h2>
+                    <p style="color:#856404; font-size:16px; margin:8px 0;">
+                        You should see a doctor within <strong>24 hours.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        else:
+            st.markdown("""
+                <div style="background:#d4edda; border:2px solid #28a745;
+                     border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#155724; margin:0;">✅ LOW RISK</h2>
+                    <p style="color:#155724; font-size:16px; margin:8px 0;">
+                        Your symptoms can be managed at home.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        if st.button("📋 Proceed to Full Medical Report ➡️", use_container_width=True, type="primary"):
             st.session_state["current_page"] = "Results"
+            st.rerun()
+            
+        if st.button("🔄 Check New Symptoms", use_container_width=True):
+            st.session_state.diagnosis = None
+            st.session_state.transcript = ""
             st.rerun()
