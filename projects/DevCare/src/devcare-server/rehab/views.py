@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from user.models import UserProfile
 
-from .models import ExerciseSession, ExerciseTemplate, RehabPlan
+from .models import ExerciseSession, ExerciseTemplate, RehabPlan,  ExerciseResult
 from .serializers import (
 	ExerciseSessionSerializer,
 	ExerciseTemplateSerializer,

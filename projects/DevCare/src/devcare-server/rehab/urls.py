@@ -7,8 +7,10 @@ from .views import (
     SessionCompleteView,
     SessionStartView,
     PatientPlanListView,
+    PatientPlanListView,
     MySessionHistoryView,
     SessionDetailView,
+    PatientSessionHistoryView,
 )
 
 urlpatterns = [
@@ -18,6 +20,7 @@ urlpatterns = [
     path("plans/my/", PatientPlanListView.as_view(), name="rehab-my-plans"),
     path("sessions/start/", SessionStartView.as_view(), name="rehab-session-start"),
     path("sessions/history/", MySessionHistoryView.as_view(), name="rehab-session-history"),
+    path("patient-sessions/<int:patient_id>/", PatientSessionHistoryView.as_view(), name="rehab-patient-sessions"),
     path("sessions/<int:session_id>/", SessionDetailView.as_view(), name="rehab-session-detail"),
     path(
         "sessions/<int:session_id>/complete/",
