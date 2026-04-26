@@ -38,84 +38,139 @@ def show():
     st.title("🌡️ Symptom Checker")
     st.markdown(f"Hello **{user_name}**, please describe what symptoms you are experiencing.")
 
-    with st.container(border=True):
-        st.subheader("Current Distress")
-        captured_speech = speech_to_text(language='en', start_prompt="Record", stop_prompt="Stop", key='biomistral_mic')
+    if not st.session_state.diagnosis:
 
-        if captured_speech and captured_speech != st.session_state.transcript:
-            st.session_state.transcript = captured_speech
-            st.rerun()
+        with st.container(border=True):
+            st.subheader("Current Distress")
+            captured_speech = speech_to_text(language='en', start_prompt="Record", stop_prompt="Stop", key='biomistral_mic')
 
-        user_input = st.text_area("Describe symptoms:", value=st.session_state.transcript, height=150)
-        st.session_state.transcript = user_input
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            ui_severity = st.select_slider(
-                "How bad is the pain?",
-                options=["Mild", "Moderate", "Severe", "Unbearable"]
-            )
-        with col2:
-            duration = st.selectbox(
-                "Duration:",
-                ["Just started", "A few hours", "1-2 days", "More than a week"]
-            )
+            if captured_speech and captured_speech != st.session_state.transcript:
+                st.session_state.transcript = captured_speech
+                st.rerun()
 
-    # 5. Action Button & Integration Logic
-    if st.button("Analyze with AI", type="primary", use_container_width=True):
-        raw_text = st.session_state.transcript.strip()
-        
-        if not raw_text:
-            st.warning("Please provide symptoms to analyze.")
-        elif not CORE_READY:
-            st.error("Medical Engine is not loaded correctly.")
-        else:
-            with st.spinner("Analyzing your symptoms with clinical context..."):
-                try:
-                    full_narrative = f"{raw_text}. Reported Severity: {ui_severity}. Duration: {duration}."
-                    ner_results = extract_entities(full_narrative)
-                    final_payload = preprocess(full_narrative, ner_results, user_profile, duration, ui_severity)
-                    context = get_rag_context(full_narrative, top_k=5)
-                    ai_result = run_inference(final_payload, context)
-                    
-                    top_conds = ai_result.get('top_conditions', [])
-                    top_name = top_conds[0].get('name', '') if top_conds else ''
-                    
-                    risk_tier = triage(
-                        confidence_score=ai_result.get('confidence_score', 0.5), 
-                        severity=ui_severity.lower(), 
-                        duration=duration.lower(),
-                        condition_name=top_name
-                    )
-                    
-                    ai_result['risk_tier'] = risk_tier
-                    st.session_state.diagnosis = ai_result
-                    st.session_state.severity = risk_tier 
-                    st.session_state.current_symptoms = raw_text
+            user_input = st.text_area("Describe symptoms:", value=st.session_state.transcript, height=150)
+            st.session_state.transcript = user_input
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                ui_severity = st.select_slider(
+                    "How bad is the pain?",
+                    options=["Mild", "Moderate", "Severe", "Unbearable"]
+                )
+            with col2:
+                duration = st.selectbox(
+                    "Duration:",
+                    ["Just started", "A few hours", "1-2 days", "More than a week"]
+                )
 
-                    if patient_id:
-                        full_symptom_record = f"{raw_text} (Severity: {ui_severity}, Duration: {duration})"
-                        session_id = save_session(patient_id, full_symptom_record, ai_result, risk_tier)
-                        st.session_state.session_id = session_id
-                    
-                    st.success("Analysis Complete!")
+        # 5. Action Button & Integration Logic
+        if st.button("Analyze with AI", type="primary", use_container_width=True):
+            raw_text = st.session_state.transcript.strip()
+            
+            if not raw_text:
+                st.warning("Please provide symptoms to analyze.")
+            elif not CORE_READY:
+                st.error("Medical Engine is not loaded correctly.")
+            else:
+                with st.spinner("Analyzing your symptoms with clinical context..."):
+                    try:
+                        full_narrative = f"{raw_text}. Reported Severity: {ui_severity}. Duration: {duration}."
+                        ner_results = extract_entities(full_narrative)
+                        final_payload = preprocess(full_narrative, ner_results, user_profile, duration, ui_severity)
+                        context = get_rag_context(full_narrative, top_k=5)
+                        ai_result = run_inference(final_payload, context)
+                        
+                        top_conds = ai_result.get('top_conditions', [])
+                        top_name = top_conds[0].get('name', '') if top_conds else ''
+                        
+                        risk_tier = triage(
+                            confidence_score=ai_result.get('confidence_score', 0.5), 
+                            severity=ui_severity.lower(), 
+                            duration=duration.lower(),
+                            condition_name=top_name
+                        )
+                        
+                        ai_result['risk_tier'] = risk_tier
+                        st.session_state.diagnosis = ai_result
+                        st.session_state.severity = risk_tier 
+                        st.session_state.current_symptoms = raw_text
 
-                except Exception as e:
-                    st.error(f"Analysis Failed: {e}")
+                        if patient_id:
+                            full_symptom_record = f"{raw_text} (Severity: {ui_severity}, Duration: {duration})"
+                            session_id = save_session(patient_id, full_symptom_record, ai_result, risk_tier)
+                            st.session_state.session_id = session_id
+                        
+                        st.success("Analysis Complete!")
+
+                    except Exception as e:
+                        st.error(f"Analysis Failed: {e}")
 
     if st.session_state.diagnosis:
         risk = st.session_state.diagnosis.get('risk_tier', 'LOW').upper()
-        st.info(f"Analysis complete. Risk Tier: **{risk}**")
 
-        # 2. Display Urgent Banner
+        # ── HIGH ─────────────────────────────────────────────────────
         if risk == "HIGH":
-            st.error("🚨 **EMERGENCY: Please seek immediate medical attention.**")
-        elif risk == "MEDIUM":
-            st.warning("⚠️ **MEDIUM: Follow-up with a healthcare provider soon.**")
-        else:
-            st.success("✅ **LOW RISK: Manage symptoms at home and monitor.**")
+            st.markdown("""
+                <div style="background:#ff000020; border:2px solid #ff0000; 
+                     border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#cc0000; margin:0;">🚨 EMERGENCY</h2>
+                    <p style="color:#cc0000; font-size:18px; margin:8px 0;">
+                        Your symptoms require <strong>immediate medical attention.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
 
-        
-        if st.button("Proceed to Full Medical Report ➡️", use_container_width=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.link_button(
+                    "📞 Call 911 Now",
+                    "tel:911",
+                    use_container_width=True,
+                    type="primary"
+                )
+            with col2:
+                st.link_button(
+                    "🗺️ Find Nearest ER",
+                    "https://www.google.com/maps/search/emergency+room+near+me",
+                    use_container_width=True
+                )
+
+        # ── MEDIUM ───────────────────────────────────────────────────
+        elif risk == "MEDIUM":
+            st.markdown("""
+                <div style="background:#fff3cd; border:2px solid #ffc107;
+                     border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#856404; margin:0;">⚠️ MEDICAL ATTENTION NEEDED</h2>
+                    <p style="color:#856404; font-size:16px; margin:8px 0;">
+                        You should see a doctor within <strong>24 hours.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("📅 Schedule Appointment", use_container_width=True, type="primary"):
+                st.session_state["current_page"] = "Results"
+                st.session_state["scroll_to"] = "appointment"
+                st.rerun()
+
+        # ── LOW ──────────────────────────────────────────────────────
+        else:
+            st.markdown("""
+                <div style="background:#d4edda; border:2px solid #28a745;
+                     border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#155724; margin:0;">✅ LOW RISK</h2>
+                    <p style="color:#155724; font-size:16px; margin:8px 0;">
+                        Your symptoms can be managed at home.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("💊 View Home Remedies", use_container_width=True, type="primary"):
+                st.session_state["current_page"] = "Results"
+                st.session_state["scroll_to"] = "remedies"
+                st.rerun()
+
+        # ── FULL REPORT (all tiers) ───────────────────────────────────
+        st.markdown("---")
+        if st.button("📋 Proceed to Full Medical Report ➡️", use_container_width=True):
             st.session_state["current_page"] = "Results"
             st.rerun()
