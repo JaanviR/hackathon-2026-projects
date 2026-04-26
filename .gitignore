@@ -10,3 +10,9 @@
 __pycache__/
 
 chroma_store/
+
+projects/techmantra/src/db/triage.db
+
+projects/techmantra/src/integrations/token.json
+
+projects/techmantra/src/integrations/credentials.json
