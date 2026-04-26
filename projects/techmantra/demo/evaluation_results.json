@@ -1,0 +1,443 @@
+{
+  "run_time": "2026-04-26 07:59:17",
+  "accuracy": {
+    "total": 20,
+    "correct": 18,
+    "errors": 0,
+    "overall_accuracy": 90.0,
+    "tier_stats": {
+      "HIGH": {
+        "total": 5,
+        "correct": 5,
+        "accuracy": 100.0
+      },
+      "MEDIUM": {
+        "total": 8,
+        "correct": 6,
+        "accuracy": 75.0
+      },
+      "LOW": {
+        "total": 7,
+        "correct": 7,
+        "accuracy": 100.0
+      }
+    }
+  },
+  "results": [
+    {
+      "id": 1,
+      "patient": "Male, 58, hypertension, no allergies",
+      "input": "I have sudden severe chest pain radiating to my left arm, I am sweating and feel short of breath",
+      "expected_risk": "HIGH",
+      "actual_risk": "HIGH",
+      "matched": true,
+      "top_condition": "Cardiac chest pain (heart-related \u2014 EMERGENCY)",
+      "probability": 0.95,
+      "confidence_score": 0.95,
+      "symptoms_extracted": [
+        "chest pain"
+      ],
+      "negations_detected": [],
+      "ner_severity": "high",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing sudden, severe chest pain radiating to the left arm, accompanied by shortness of breath and sweating. This is a medical em...",
+      "clinical_note": "Classic heart attack presentation",
+      "error": null
+    },
+    {
+      "id": 2,
+      "patient": "Female, 25, no conditions, no allergies",
+      "input": "I have a sudden severe headache, high fever of 103, my neck is very stiff and I am sensitive to light",
+      "expected_risk": "HIGH",
+      "actual_risk": "HIGH",
+      "matched": true,
+      "top_condition": "Meningitis",
+      "probability": 0.95,
+      "confidence_score": 0.95,
+      "symptoms_extracted": [
+        "headache",
+        "fever"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing a severe headache, high fever, and stiff neck, along with sensitivity to light. This presentation is highly concerning for...",
+      "clinical_note": "Classic bacterial meningitis triad",
+      "error": null
+    },
+    {
+      "id": 3,
+      "patient": "Male, 40, no conditions, no allergies",
+      "input": "I cannot breathe properly, my throat feels like it is closing and my face is swelling up",
+      "expected_risk": "HIGH",
+      "actual_risk": "HIGH",
+      "matched": true,
+      "top_condition": "Severe sore throat with breathing difficulty and facial swelling",
+      "probability": 0.95,
+      "confidence_score": 0.95,
+      "symptoms_extracted": [
+        "cannot breathe"
+      ],
+      "negations_detected": [],
+      "ner_severity": "high",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing a severe sore throat with difficulty breathing and facial swelling. This is a medical emergency and requires immediate att...",
+      "clinical_note": "Anaphylaxis \u2014 airway emergency",
+      "error": null
+    },
+    {
+      "id": 4,
+      "patient": "Female, 67, diabetes, aspirin allergy",
+      "input": "I passed out earlier and now I feel confused and dizzy, my speech feels strange",
+      "expected_risk": "HIGH",
+      "actual_risk": "HIGH",
+      "matched": true,
+      "top_condition": "Dizziness",
+      "probability": 0.9,
+      "confidence_score": 0.8,
+      "symptoms_extracted": [
+        "passed out",
+        "dizzy"
+      ],
+      "negations_detected": [],
+      "ner_severity": "high",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing dizziness, confusion, and a feeling of passing out. These symptoms, especially when severe or accompanied by other concern...",
+      "clinical_note": "Possible stroke \u2014 FAST symptoms",
+      "error": null
+    },
+    {
+      "id": 5,
+      "patient": "Male, 30, no conditions, no allergies",
+      "input": "I am having a seizure, my whole body is shaking and I cannot control it",
+      "expected_risk": "HIGH",
+      "actual_risk": "HIGH",
+      "matched": true,
+      "top_condition": "Seizure",
+      "probability": 0.95,
+      "confidence_score": 0.85,
+      "symptoms_extracted": [
+        "seizure"
+      ],
+      "negations_detected": [],
+      "ner_severity": "high",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing a seizure and has a severe headache, stiff neck, and sensitivity to light and noise. These symptoms, along with the seizur...",
+      "clinical_note": "Active seizure \u2014 neurological emergency",
+      "error": null
+    },
+    {
+      "id": 6,
+      "patient": "Female, 34, no conditions, penicillin allergy",
+      "input": "I have had ear pain for 3 days, mild fever of 100.5, and my hearing feels muffled in my right ear",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "MEDIUM",
+      "matched": true,
+      "top_condition": "Sore Throat",
+      "probability": 0.8,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [
+        "pain",
+        "fever"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports ear pain and a mild fever. While these symptoms are common and often resolve on their own, it's important to monitor them closely....",
+      "clinical_note": "Ear infection \u2014 needs antibiotics",
+      "error": null
+    },
+    {
+      "id": 7,
+      "patient": "Male, 45, no conditions, no allergies",
+      "input": "I have a high fever of 102, chills, body aches, and I have been coughing for 4 days with yellow mucus",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "MEDIUM",
+      "matched": true,
+      "top_condition": "Sore Throat",
+      "probability": 0.75,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [
+        "fever",
+        "coughing"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports a high fever, chills, body aches, and a cough with yellow mucus. The symptoms have lasted for 4 days. Based on the symptoms, a sor...",
+      "clinical_note": "Possible bacterial respiratory infection",
+      "error": null
+    },
+    {
+      "id": 8,
+      "patient": "Female, 52, diabetes, no allergies",
+      "input": "I have a painful burning sensation when I urinate, lower abdominal pain, and a low fever for 2 days",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "LOW",
+      "matched": false,
+      "top_condition": "Indigestion",
+      "probability": 0.8,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [
+        "pain",
+        "fever"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing a painful burning sensation when urinating, lower abdominal pain, and a low fever for 2 days. These symptoms could be rela...",
+      "clinical_note": "UTI \u2014 diabetes increases complication risk",
+      "error": null
+    },
+    {
+      "id": 9,
+      "patient": "Male, 22, asthma, no allergies",
+      "input": "My asthma inhaler is not working, I am wheezing badly and having trouble breathing after exercise",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "MEDIUM",
+      "matched": true,
+      "top_condition": "Asthma exacerbation",
+      "probability": 0.85,
+      "confidence_score": 0.85,
+      "symptoms_extracted": [],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing an asthma exacerbation, indicated by wheezing and difficulty breathing after exercise. The patient's asthma inhaler is not...",
+      "clinical_note": "Asthma exacerbation \u2014 needs medical evaluation",
+      "error": null
+    },
+    {
+      "id": 10,
+      "patient": "Female, 29, no conditions, no allergies",
+      "input": "I have had a severe sore throat for 5 days with white patches on my tonsils and fever of 101",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "MEDIUM",
+      "matched": true,
+      "top_condition": "Sore Throat",
+      "probability": 0.95,
+      "confidence_score": 0.85,
+      "symptoms_extracted": [
+        "sore throat",
+        "fever"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports a sore throat lasting 5 days with white patches on the tonsils and a fever of 101\u00b0F. The patient does not have any known allergies...",
+      "clinical_note": "Likely strep throat \u2014 needs antibiotics",
+      "error": null
+    },
+    {
+      "id": 11,
+      "patient": "Male, 32, no conditions, no allergies",
+      "input": "I have a runny nose, sneezing, mild sore throat, and a slight cough for 2 days. No fever.",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "Common Cold",
+      "probability": 0.95,
+      "confidence_score": 0.95,
+      "symptoms_extracted": [
+        "sore throat",
+        "cough"
+      ],
+      "negations_detected": [
+        "fever"
+      ],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports a runny nose, sneezing, mild sore throat, and a slight cough for 2 days. No fever. Based on the symptoms and the provided document...",
+      "clinical_note": "Common cold \u2014 home care appropriate",
+      "error": null
+    },
+    {
+      "id": 12,
+      "patient": "Female, 28, seasonal allergies, no allergies to medication",
+      "input": "My eyes are itchy and watery, I keep sneezing, and my nose is runny. No fever.",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "Hay Fever",
+      "probability": 0.95,
+      "confidence_score": 0.95,
+      "symptoms_extracted": [],
+      "negations_detected": [
+        "fever"
+      ],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing symptoms consistent with hay fever, including itchy watery eyes, sneezing, and a runny nose. No fever is reported....",
+      "clinical_note": "Seasonal allergies \u2014 antihistamine appropriate",
+      "error": null
+    },
+    {
+      "id": 13,
+      "patient": "Male, 38, no conditions, no allergies",
+      "input": "I have indigestion and heartburn after eating a large spicy meal. No chest pain or fever.",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "Indigestion",
+      "probability": 0.95,
+      "confidence_score": 0.9,
+      "symptoms_extracted": [],
+      "negations_detected": [
+        "chest pain",
+        "fever"
+      ],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports indigestion and heartburn after eating a large spicy meal. This is consistent with the symptoms of indigestion, which can be cause...",
+      "clinical_note": "Indigestion \u2014 antacid appropriate",
+      "error": null
+    },
+    {
+      "id": 14,
+      "patient": "Female, 24, no conditions, no allergies",
+      "input": "I have a mild tension headache at the front of my head. No fever, no stiff neck, no vision changes.",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "headache",
+      "probability": 0.95,
+      "confidence_score": 0.8,
+      "symptoms_extracted": [
+        "headache"
+      ],
+      "negations_detected": [
+        "fever",
+        "stiff neck"
+      ],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports a mild headache. While the patient does not have fever or stiff neck, it is important to monitor for any worsening symptoms, espec...",
+      "clinical_note": "Tension headache \u2014 home care appropriate",
+      "error": null
+    },
+    {
+      "id": 15,
+      "patient": "Male, 50, no conditions, no allergies",
+      "input": "I have mild lower back pain after lifting boxes yesterday. No numbness, no bladder issues.",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "Muscle or ligament strain",
+      "probability": 0.9,
+      "confidence_score": 0.9,
+      "symptoms_extracted": [
+        "pain"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports mild lower back pain after lifting boxes yesterday. This is likely a muscle or ligament strain, which usually improves with home t...",
+      "clinical_note": "Musculoskeletal back pain \u2014 rest and ice appropriate",
+      "error": null
+    },
+    {
+      "id": 16,
+      "patient": "Female, 35, diabetes, penicillin allergy",
+      "input": "I have a fever and headache but no stiff neck, no chest pain, no difficulty breathing",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "Fever",
+      "probability": 0.8,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [
+        "fever",
+        "headache"
+      ],
+      "negations_detected": [
+        "stiff neck",
+        "chest pain",
+        "difficulty breathing"
+      ],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "You have a fever and headache. While these symptoms can be caused by various conditions, it's important to monitor them closely. If your symptoms wors...",
+      "clinical_note": "Negation test \u2014 should NOT escalate despite fever+headache",
+      "error": null
+    },
+    {
+      "id": 17,
+      "patient": "Male, 42, no conditions, no allergies",
+      "input": "I am worried about meningitis because my friend has it but I just have a slight headache and no other symptoms",
+      "expected_risk": "LOW",
+      "actual_risk": "LOW",
+      "matched": true,
+      "top_condition": "headache",
+      "probability": 0.75,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [
+        "meningitis",
+        "headache"
+      ],
+      "negations_detected": [],
+      "ner_severity": "high",
+      "rag_chunks": 5,
+      "summary": "The patient is concerned about meningitis due to a friend's illness. The patient reports only a mild headache. While the patient's symptoms are mild, ...",
+      "clinical_note": "Anxiety mention test \u2014 should not over-escalate",
+      "error": null
+    },
+    {
+      "id": 18,
+      "patient": "Female, 60, hypertension, no allergies",
+      "input": "I feel dizzy when I stand up quickly and I felt faint once this morning but I am fine now",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "MEDIUM",
+      "matched": true,
+      "top_condition": "Lightheadedness",
+      "probability": 0.8,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [
+        "dizzy"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient reports feeling dizzy when standing up quickly and experiencing lightheadedness. This is likely due to orthostatic hypotension, which can ...",
+      "clinical_note": "Orthostatic hypotension in hypertensive patient \u2014 warrants evaluation",
+      "error": null
+    },
+    {
+      "id": 19,
+      "patient": "Male, 19, no conditions, no allergies",
+      "input": "aaa my stomch hrts rly bad",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "LOW",
+      "matched": false,
+      "top_condition": "Indigestion",
+      "probability": 0.75,
+      "confidence_score": 0.75,
+      "symptoms_extracted": [],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing severe indigestion, which is causing stomach pain. While indigestion is usually not serious, it is important to consult a ...",
+      "clinical_note": "Typo/informal input test \u2014 pipeline should still function",
+      "error": null
+    },
+    {
+      "id": 20,
+      "patient": "Female, 45, no conditions, no allergies",
+      "input": "I have had nausea and vomiting for 24 hours and I cannot keep any water down. I feel very weak.",
+      "expected_risk": "MEDIUM",
+      "actual_risk": "MEDIUM",
+      "matched": true,
+      "top_condition": "Dehydration",
+      "probability": 0.85,
+      "confidence_score": 0.85,
+      "symptoms_extracted": [
+        "nausea"
+      ],
+      "negations_detected": [],
+      "ner_severity": "low",
+      "rag_chunks": 5,
+      "summary": "The patient is experiencing nausea and vomiting for 24 hours, with inability to keep any liquids down, and feels weak. The patient has a high fever ab...",
+      "clinical_note": "Dehydration risk \u2014 needs medical evaluation",
+      "error": null
+    }
+  ]
+}
