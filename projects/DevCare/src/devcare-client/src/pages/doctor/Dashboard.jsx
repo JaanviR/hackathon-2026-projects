@@ -97,7 +97,6 @@ function Dashboard() {
     )
   }
 
-  const { stats, recent_patients } = data
 
   return (
     <div className="animate-fade-in">
