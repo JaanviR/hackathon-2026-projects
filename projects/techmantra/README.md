@@ -52,11 +52,11 @@ LangChain queries a ChromaDB vector database indexed from MedlinePlus and CDC me
 MedGemma (alibayram/medgemma via Ollama) runs entirely locally on-device. It receives the patient profile, confirmed symptoms, negated symptoms, and retrieved medical documents. It is instructed via system prompt to answer only from the retrieved documents — never from training memory. It returns a structured JSON diagnosis with top conditions, confidence score, risk tier, warnings, and cited sources.
 
 **Step 5 — Risk Triage and Routing**
-The triage engine combines the LLM confidence score with the NER severity assessment:
+The triage engine combines LLM confidence, symptom severity, and duration-aware escalation rules:
 - **LOW** — Home care with remedies cited from MedlinePlus and CDC
 - **MEDIUM** — Automated doctor appointment booking via Google Calendar + email summary to doctor via Gmail
 - **HIGH** — Full-screen emergency alert with direct 911 call button
-- **UNCERTAIN** — Confidence below 50% triggers "please consult a doctor" fallback
+- **UNCERTAIN** — Confidence below 40% triggers "please consult a doctor" fallback
 
 **Step 6 — Doctor Dashboard**
 A separate view for healthcare providers shows all patient sessions sorted by risk tier. High risk patients appear at the top. Receptionists can use this to reprioritize appointments based on clinical urgency rather than booking order.
@@ -86,7 +86,7 @@ A separate view for healthcare providers shows all patient sessions sorted by ri
 | Text to Speech | pyttsx3 (local) |
 | Notifications | Gmail API |
 | Appointments | Google Calendar API |
-| Test Data | Synthea synthetic patient records |
+| Test Data | Manually curated synthetic triage scenarios (`src/test_data/test_cases.json`) |
 
 ---
 
@@ -95,44 +95,47 @@ A separate view for healthcare providers shows all patient sessions sorted by ri
 ```
 techmantra/
 ├── demo/
+│   ├── evaluation.py              Demo/evaluation helper script
+│   ├── evaluation_results.json    Structured evaluation output
+│   ├── evaluation_results.md      Evaluation outputs and notes
 │   └── test_demo.py               End-to-end demo test script
 ├── src/
 │   ├── app/
 │   │   ├── main.py                Streamlit entry point and navigation
 │   │   └── session_state.py       Global session state management
 │   ├── core/
+│   │   ├── __init__.py
+│   │   ├── llm.py                 MedGemma inference via Ollama
 │   │   ├── ner.py                 medspaCy clinical NER pipeline
 │   │   ├── preprocessing.py       Symptom payload builder
 │   │   ├── rag.py                 ChromaDB retrieval via LangChain
-│   │   ├── llm.py                 MedGemma inference via Ollama
-│   │   ├── triage.py              Risk engine and remedy lookup
-│   │   ├── stt.py                 Whisper speech-to-text
-│   │   └── tts.py                 pyttsx3 text-to-speech
+│   │   └── triage.py              Risk engine and remedy lookup
 │   ├── db/
+│   │   ├── __init__.py
 │   │   ├── db.py                  SQLite connection and queries
-│   │   └── remedy_db.json         Home remedy seed data
+│   │   ├── remedy_db.json         Home remedy seed data
+│   │   └── schema.sql             Database schema
 │   ├── integrations/
+│   │   ├── __init__.py
+│   │   ├── calendar_api.py        Google Calendar appointment booking
 │   │   ├── creds_verification.py  Google OAuth handler
-│   │   ├── calendar.py            Google Calendar appointment booking
-│   │   ├── notifications.py       Gmail API doctor notifications
-│   │   └── fhir_builder.py        FHIR resource constructors
+│   │   ├── fhir_builder.py        FHIR resource constructors
+│   │   └── notifications.py       Gmail API doctor notifications
 │   ├── pages/
-│   │   ├── 01_signup.py           Patient profile form
-│   │   ├── 02_symptoms.py         Symptom input — text and voice
-│   │   ├── 03_results.py          Diagnosis output and risk routing
-│   │   └── 04_doctor_dashboard.py Provider view sorted by urgency
+│   │   ├── doctor_dashboard.py    Provider view sorted by urgency
+│   │   ├── results.py             Diagnosis output and risk routing
+│   │   ├── signup.py              Patient profile form
+│   │   └── symptoms.py            Symptom input and analysis
 │   ├── rag_data/
 │   │   ├── ingest.py              Document indexing into ChromaDB
 │   │   └── sources/
 │   │       ├── cdc/               CDC guideline text files
 │   │       └── medlineplus/       MedlinePlus article text files
 │   ├── test_data/
-│   │   └── synthea_patients.json  Synthetic test patients
-│   └── test_src.py                Pipeline integration test
+│   │   └── test_cases.json        Evaluation test cases
 ├── README.md                      This file
 ├── responsible-ai.md              Responsible AI documentation
 ├── requirements.txt               All Python dependencies
-├── .env                           API keys — never committed
 └── .gitignore
 ```
 
@@ -232,7 +235,8 @@ python src/core/preprocessing.py  # Test payload builder
 python src/core/rag.py            # Test RAG retrieval
 python src/core/llm.py            # Test LLM inference
 python src/core/triage.py         # Test risk engine
-python src/test_src.py            # Full end-to-end pipeline test
+python demo/test_demo.py          # End-to-end demo flow
+python demo/evaluation.py         # Batch evaluation on test cases
 ```
 
 ---
@@ -243,7 +247,7 @@ All medical knowledge used for RAG retrieval comes from:
 
 - **MedlinePlus** (National Institutes of Health) — `medlineplus.gov`
 - **CDC** (Centers for Disease Control and Prevention) — `cdc.gov`
-- **Synthea** — Synthetic patient records for testing — no real patient data used at any point
+- **Internal synthetic evaluation set** — `src/test_data/test_cases.json` (20 curated triage scenarios across HIGH/MEDIUM/LOW)
 
 ---
 
@@ -270,7 +274,7 @@ All medical knowledge used for RAG retrieval comes from:
 ## Known Limitations
 
 - MedGemma inference speed depends on device hardware — 8GB+ RAM recommended
-- medspaCy TargetRule covers approximately 50 common symptoms — rare conditions rely on raw text passed to the LLM
+- medspaCy TargetRule currently covers approximately 25 curated symptom phrases — uncommon phrasings rely on raw text + LLM context
 - Remedy database covers 10 common conditions — uncommon diagnoses fall back to LLM-generated suggestions
 - Google Calendar booking defaults to 2 hours from current time — production would use proper scheduling
 - Voice input requires clear audio — background noise reduces Whisper accuracy
@@ -284,7 +288,7 @@ See [responsible-ai.md](./responsible-ai.md) for full documentation covering mod
 
 **Key safeguards built into every layer:**
 - LLM answers only from retrieved medical documents — cannot hallucinate
-- Confidence below 50% triggers "please consult a doctor" fallback — no diagnosis shown
+- Confidence below 40% triggers "please consult a doctor" fallback — no diagnosis shown
 - Emergency keywords always escalate to HIGH risk regardless of LLM confidence score
 - Patient data never leaves the device — all inference is local via Ollama
 - Every single output includes a clinical disclaimer

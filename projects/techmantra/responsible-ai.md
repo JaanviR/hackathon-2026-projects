@@ -47,12 +47,22 @@ General-purpose NLP models like spaCy's `en_core_web_sm` are trained on news art
 medspaCy's ConText algorithm was designed specifically for clinical text and correctly handles all three patterns. Using the wrong NLP model in a medical context is a patient safety issue, not just an accuracy issue.
 
 **Limitation acknowledged:**
-Our symptom list in TargetRule is manually curated and covers approximately 50 common symptoms and conditions. Rare or highly specialized conditions outside this list may not be correctly extracted. In these cases the raw symptom text is still passed to the LLM, which provides a secondary extraction layer.
+Our symptom list in TargetRule is manually curated and covers approximately 25 common symptoms and conditions. Rare or highly specialized conditions outside this list may not be correctly extracted. In these cases the raw symptom text is still passed to the LLM, which provides a secondary extraction layer.
 
 ### Embedding Model — pritamdeka/S-PubMedBert-MS-MARCO
 
+**Model selection process:**
+- Initial trial: `all-MiniLM-L6-v2` (general-purpose embedding model, fast and lightweight)
+- Observed issue: retrieval quality was not reliable enough for symptom-to-medical-document matching
+- Final decision: switched to `pritamdeka/S-PubMedBert-MS-MARCO`
+
 **Why this model:**
 Standard sentence transformers are trained on general text. Medical retrieval requires understanding biomedical terminology. S-PubMedBert is fine-tuned on PubMed biomedical text and the MS-MARCO retrieval dataset, making it significantly more accurate at retrieving relevant medical documents for clinical queries than general embedding models.
+
+**Why the switch improved results:**
+- The model is trained on biomedical language (PubMed), so it better understands clinical terms and symptom phrasing
+- It is also fine-tuned for retrieval (MS-MARCO), which directly matches our RAG use case
+- It can be downloaded directly from Hugging Face without a token in our current setup
 
 ---
 
@@ -81,7 +91,11 @@ All patient data entered into the app is:
 
 ### Test Data
 
-All testing during development used Synthea-generated synthetic patient records. Synthea is an open-source synthetic patient generator from MITRE Corporation. No real patient data was used at any point in development or testing.
+Testing during development uses internally curated synthetic triage scenarios in `src/test_data/test_cases.json` (20 cases covering HIGH/MEDIUM/LOW risk tiers), plus pipeline evaluation outputs in `demo/evaluation_results.json` and `demo/evaluation_results.md`.
+
+These cases are designed to stress key triage behaviors such as emergency escalation, negation handling ("no chest pain"), noisy/typo input, and moderate-risk outpatient routing.
+
+No real patient data was used at any point in development or testing.
 
 ---
 
@@ -89,7 +103,7 @@ All testing during development used Synthea-generated synthetic patient records.
 
 ### Training Data Bias in the LLM
 
-Mistral-7B was trained on large-scale internet text. This data reflects existing biases in medical literature and online health information, which historically has underrepresented certain populations:
+MedGemma and biomedical foundation models are still influenced by upstream medical literature and web-scale corpora. Those sources can underrepresent certain populations:
 
 - Symptoms of heart attack in women differ from classic presentations and are less well-documented
 - Certain conditions present differently across ethnic groups but this variation is underrepresented in training data
@@ -103,9 +117,11 @@ Patients describe symptoms differently based on language proficiency, cultural b
 
 **Mitigation:** The raw symptom text is always passed to the LLM in addition to extracted entities, allowing the LLM to process descriptions that medspaCy did not extract.
 
+**Evaluation signal:** In our curated evaluation set, a typo-heavy input ("aaa my stomch hrts rly bad") was under-triaged (expected MEDIUM, got LOW). This indicates robustness gaps for misspellings/informal text and motivates adding spelling normalization and broader symptom synonym coverage.
+
 ### Demographic Bias in Risk Assessment
 
-The triage engine applies the same confidence thresholds to all patients. However, risk profiles differ significantly by age, sex, and medical history. A confidence score of 0.7 for chest pain in a 55-year-old male with diabetes represents different clinical urgency than the same score in a 25-year-old female with no risk factors.
+The triage engine applies rule-based thresholds (confidence, severity, and symptom duration). However, risk profiles differ significantly by age, sex, and medical history. A confidence score of 0.7 for chest pain in a 55-year-old male with diabetes represents different clinical urgency than the same score in a 25-year-old female with no risk factors.
 
 **Mitigation:** Patient age, known conditions, and allergies are included in every LLM prompt, giving the model demographic context for its assessment. This does not fully resolve the issue but reduces its impact.
 
@@ -119,9 +135,9 @@ We are a team of three developers building a hackathon prototype. We are not cli
 
 ### Failure Case 1 — LLM Returns Low Confidence
 
-**Scenario:** The retrieved medical documents do not closely match the patient's symptoms. The LLM returns a confidence score below 0.5.
+**Scenario:** The retrieved medical documents do not closely match the patient's symptoms. The LLM returns a confidence score below 0.4.
 
-**Safeguard:** The triage engine returns UNCERTAIN for any confidence score below 0.5. The app displays "We were unable to make a confident assessment — please consult a doctor directly." No diagnosis is shown. No remedy is suggested.
+**Safeguard:** The triage engine returns UNCERTAIN for any confidence score below 0.4. The app displays "We were unable to make a confident assessment — please consult a doctor directly." No diagnosis is shown. No remedy is suggested.
 
 ### Failure Case 2 — High Risk Keyword in Negated Context
 
@@ -158,6 +174,12 @@ We are a team of three developers building a hackathon prototype. We are not cli
 **Scenario:** Google API is unavailable or credentials have expired.
 
 **Safeguard:** All integration calls are wrapped in try/except blocks. If notification or calendar booking fails, the app logs the error and continues — the patient still sees their diagnosis and next steps. Integration failures are non-blocking.
+
+### Failure Case 8 — Medium-Risk Under-Triage in Edge Presentations
+
+**Scenario:** In evaluation, some moderate-risk cases were predicted as LOW (for example UTI-like symptom wording and typo-heavy abdominal pain text).
+
+**Safeguard:** We treat these as known model limitations, surface clinical disclaimers on every output, and recommend medical follow-up whenever symptoms persist/worsen. We also use these misses to expand test coverage and improve symptom vocabulary/rules for future iterations.
 
 ---
 
