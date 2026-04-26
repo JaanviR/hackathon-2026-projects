@@ -34,6 +34,13 @@ The backend currently provides:
 - A Hugging Face first-visit brief endpoint with deterministic fallback
 - QR code generation for the patient summary URL
 
+The frontend provides:
+
+- A doctor snapshot dashboard
+- First-visit brief and drug warning action panels
+- Deep dive charts, timeline, encounters, and condition threads
+- A patient medical ID card view with QR code
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -43,7 +50,7 @@ The backend currently provides:
 | Drug warnings | OpenFDA drug label API |
 | AI brief | Hugging Face router, `meta-llama/Llama-3.1-8B-Instruct` |
 | QR code | `qrcode[pil]` |
-| Frontend | React + Tailwind planned/in progress |
+| Frontend | React, Vite, Recharts, Lucide React, CSS |
 
 ## Implemented Backend Endpoints
 
@@ -56,7 +63,7 @@ GET  /api/qr/default
 
 Full backend API details are in [docs/backend-api.md](docs/backend-api.md).
 
-## Setup
+## Backend Setup
 
 From the repository root:
 
@@ -86,6 +93,30 @@ The backend runs at:
 
 ```text
 http://127.0.0.1:5000
+```
+
+## Frontend Setup
+
+In a second terminal, from the repository root:
+
+```bash
+cd projects/CareRelay/src/frontend
+npm install
+npm run dev
+```
+
+The frontend runs at:
+
+```text
+http://127.0.0.1:5173
+```
+
+Keep the backend running at `http://127.0.0.1:5000` while using the frontend.
+
+Build check:
+
+```bash
+npm run build
 ```
 
 ## Quick Tests
@@ -136,7 +167,7 @@ In short:
 ## Limitations
 
 - The demo uses one synthetic patient record.
-- The frontend is still being connected.
+- The frontend is a hackathon dashboard prototype and may need final visual polish before submission.
 - The app does not include production authentication, audit logging, encryption, consent management, or HIPAA deployment controls.
 - OpenFDA label warnings are broad and are not patient-specific clinical recommendations.
 - AI summaries can be incomplete or incorrect and must be reviewed by a clinician.
