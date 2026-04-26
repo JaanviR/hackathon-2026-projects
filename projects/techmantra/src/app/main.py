@@ -3,7 +3,7 @@ import os
 import sys
 
 # --- 1. PAGE CONFIG ---
-st.set_page_config(page_title="CareDevi", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="MediTriage", layout="wide", initial_sidebar_state="expanded")
 
 # --- 2. HIDE DEFAULT NAVIGATION ---
 st.markdown("""
@@ -30,7 +30,7 @@ init_db()
 if not st.session_state.get("is_authenticated"):
     signup.show() 
 else:
-    st.sidebar.title("🏥 CareDevi")
+    st.sidebar.title("🏥 MediTriage")
     user_profile = st.session_state.get("user_profile", {})
     user_name = user_profile.get("name", "User")
     

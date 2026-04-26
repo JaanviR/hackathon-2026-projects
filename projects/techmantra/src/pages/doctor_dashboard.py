@@ -87,7 +87,7 @@ def show():
                     st.write("No symptom description provided.")
 
             st.divider()
-            st.caption("🤖 *AI Analysis (BioMistral) will appear here once connected.*")
+            st.caption("🤖 *AI Analysis will appear here once connected.*")
             
             c1, c2 = st.columns(2)
             if c1.button("Mark as Reviewed", key=f"rev_{s['session_id']}"):

@@ -36,7 +36,7 @@ def show():
     patient_id = st.session_state.get('patient_id') 
     
     st.title("🌡️ Symptom Checker")
-    st.markdown(f"Hello User!, please describe what symptoms you are experiencing.")
+    st.markdown(f"Please describe what symptoms you are experiencing.")
 
     with st.container(border=True):
         st.subheader("Current Distress")
@@ -121,7 +121,7 @@ def show():
                 </div>
             """, unsafe_allow_html=True)
             st.link_button("📞 Call 911 Now", "tel:911", use_container_width=True, type="primary")
-            
+
         elif risk == "MEDIUM":
             st.markdown("""
                 <div style="background:#fff3cd; border:2px solid #ffc107;

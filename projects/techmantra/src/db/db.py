@@ -259,14 +259,19 @@ def get_patient_as_fhir(patient_id: str) -> dict:
 
 def get_sessions_for_doctor(doctor_email: str):
     conn = get_connection()
+    email_clean = doctor_email.strip().lower()
+    
+    # Using LEFT JOIN ensures that if a patient or session exists, 
+    # we at least try to find them.
     query = """
     SELECT 
         p.name, p.age, p.sex,
         s.id as session_id, s.symptoms, s.risk_tier, s.diagnosis, s.created_at
-    FROM physician_details pd
-    JOIN patients p ON pd.patient_id = p.id
-    JOIN sessions s ON p.id = s.patient_id
-    WHERE LOWER(pd.email) = LOWER(?)
+    FROM sessions s
+    JOIN patients p ON s.patient_id = p.id
+    LEFT JOIN physician_details pd ON p.id = pd.patient_id
+    WHERE LOWER(pd.email) = ? 
+       OR s.patient_id IN (SELECT patient_id FROM appointments WHERE LOWER(doctor_email) = ?)
     ORDER BY 
         CASE s.risk_tier 
             WHEN 'HIGH' THEN 1 
@@ -274,7 +279,7 @@ def get_sessions_for_doctor(doctor_email: str):
             WHEN 'LOW' THEN 3 
             ELSE 4 END
     """
-    rows = conn.execute(query, (doctor_email.strip().lower(),)).fetchall()
+    rows = conn.execute(query, (email_clean, email_clean)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

@@ -66,9 +66,9 @@ def _render_patient_dashboard():
     st.write(f"**Known Conditions:** {conditions_text}")
 
     st.subheader("Primary Physician")
-    st.write(f"**Doctor Name:** {physician.get('doctor_name', 'Not Provided')}")
-    st.write(f"**Hospital/Clinic:** {physician.get('hospital_name', 'Not Provided')}")
-    st.write(f"**Email:** {physician.get('email', 'Not Provided')}")
+    # Swapping the keys here to ensure the right data shows in the right place
+    st.write(f"**Doctor Name:** {physician.get('email', 'Not Provided')}")
+    st.write(f"**Email:** {physician.get('doctor_name', 'Not Provided')}")
 
     with st.expander("View FHIR Patient Data (Table)", expanded=True):
         from db.db import get_patient_as_fhir
@@ -222,7 +222,7 @@ def show():
             _render_patient_dashboard()
         return
 
-    st.title("🏥 CareDevi Portal")
+    st.title("🏥 MediTriage")
     
     auth_mode = st.radio(
         "Who are you?",
