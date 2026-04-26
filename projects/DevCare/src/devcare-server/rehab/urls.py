@@ -13,6 +13,7 @@ from .views import (
     SessionDetailView,
     PatientSessionHistoryView,
     DoctorFeedbackCreateView,
+    DashboardStatsView,
 )
 
 urlpatterns = [
@@ -31,4 +32,5 @@ urlpatterns = [
         SessionCompleteView.as_view(),
         name="rehab-session-complete",
     ),
+    path("dashboard-stats/", DashboardStatsView.as_view(), name="rehab-dashboard-stats"),
 ]

@@ -43,6 +43,7 @@ class RehabPlanCreateSerializer(serializers.Serializer):
     start_date = serializers.DateField()
     end_date = serializers.DateField()
     tasks = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    weekly_goal = serializers.IntegerField(min_value=1, max_value=7, required=False, default=6)
     exercises = RehabPlanExerciseWriteSerializer(many=True, required=False, default=list)
 
     def validate(self, data):
