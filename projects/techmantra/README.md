@@ -11,37 +11,63 @@ Demo – Link to a demo video, live deployment, or screenshots.
 
 ---
 
-## The Problem
+## Team Members
 
-Every day, patients with serious conditions sit in waiting rooms behind patients with minor complaints — not because doctors don't care, but because there is no intelligent system routing them to the right level of care at the right time. Patients with a stiff neck and high fever wait alongside patients with a runny nose. Every minute of delay in a meningitis case is life-threatening. Every unnecessary ER visit for a common cold wastes resources and delays care for someone who truly needs it.
+| Name | GitHub |
+|---|---|
+| Megha | [@megha-github](https://github.com) |
+| Jahnavi | [@jahnavi-github](https://github.com) |
+| Harshini | [@harshini-github](https://github.com) |
 
-## What We Built
-
-MediTriage is an AI-powered patient triage assistant that analyzes symptoms using clinical NLP and RAG-grounded LLM inference to route patients to the right care — instantly, safely, and with full source citations.
-
-Patients describe symptoms via text or voice. MediTriage extracts clinical entities, retrieves relevant medical knowledge from trusted sources, runs AI inference grounded exclusively in those sources, and routes the patient to one of three outcomes:
-
-- **LOW risk** — home care with cited remedies from MedlinePlus and CDC
-- **MEDIUM risk** — automated doctor appointment booking via Google Calendar
-- **HIGH risk** — immediate 911 prompt with emergency call button
-
-Every diagnosis is cited. Every output includes a clinical disclaimer. Patient data never leaves the device.
+> Replace the GitHub handles above with your actual usernames before submitting.
 
 ---
 
-## Architecture
+## Problem Statement
 
-```
-Layer 0   Patient signup → FHIR-structured SQLite storage
-Layer 1   Symptom input (text or voice via Whisper STT) → medspaCy clinical NER
-Layer 2   Preprocessing → structured clinical payload
-Layer 2.5 RAG retrieval → LangChain + ChromaDB → MedlinePlus, CDC documents
-Layer 3   LLM inference (Mistral via Ollama) → safety-constrained JSON diagnosis
-Layer 4   Risk triage engine → LOW / MEDIUM / HIGH decision logic
-Layer 5   Output rendering → Streamlit UI + pyttsx3 TTS
-Layer 6   Provider summary → Gmail API + Google Calendar appointment booking
-Layer 7   Data stores → SQLite + ChromaDB vector store + remedy_db.json
-```
+Every day, patients with serious conditions sit in waiting rooms behind patients with minor complaints — not because doctors don't care, but because there is no intelligent system routing them to the right level of care at the right time.
+
+A patient with bacterial meningitis — stiff neck, high fever, sensitivity to light — waits alongside a patient with a runny nose. Every minute of delay in a meningitis case is life-threatening. Every unnecessary ER visit for a common cold wastes resources and delays care for someone who truly needs it.
+
+Existing triage systems are manual, slow, and inconsistent. Patients who call a clinic describe their symptoms to a receptionist with no clinical training. Patients who search online get generic results with no personalization. There is no tool that combines clinical NLP, grounded AI reasoning, and intelligent routing in a single accessible interface.
+
+---
+
+## Solution
+
+MediTriage is an AI-powered patient triage assistant that analyzes symptoms using clinical NLP and RAG-grounded LLM inference to route patients to the right level of care — instantly, safely, and with full source citations.
+
+### How It Works
+
+**Step 1 — Patient Signup**
+The patient enters their personal details, health history, allergies, and their doctor's contact information. This is stored locally in FHIR R4-compatible format — the international standard for healthcare data interoperability.
+
+**Step 2 — Symptom Input**
+The patient describes their symptoms via text or voice recording. Whisper STT transcribes voice input to text. medspaCy's clinical NER pipeline extracts confirmed symptoms, negated symptoms ("no fever"), and flags high-risk emergency keywords.
+
+**Step 3 — RAG Retrieval**
+LangChain queries a ChromaDB vector database indexed from MedlinePlus and CDC medical documents. The top 5 most relevant medical article chunks are retrieved based on semantic similarity to the patient's symptoms.
+
+**Step 4 — AI Inference**
+MedGemma (alibayram/medgemma via Ollama) runs entirely locally on-device. It receives the patient profile, confirmed symptoms, negated symptoms, and retrieved medical documents. It is instructed via system prompt to answer only from the retrieved documents — never from training memory. It returns a structured JSON diagnosis with top conditions, confidence score, risk tier, warnings, and cited sources.
+
+**Step 5 — Risk Triage and Routing**
+The triage engine combines the LLM confidence score with the NER severity assessment:
+- **LOW** — Home care with remedies cited from MedlinePlus and CDC
+- **MEDIUM** — Automated doctor appointment booking via Google Calendar + email summary to doctor via Gmail
+- **HIGH** — Full-screen emergency alert with direct 911 call button
+- **UNCERTAIN** — Confidence below 50% triggers "please consult a doctor" fallback
+
+**Step 6 — Doctor Dashboard**
+A separate view for healthcare providers shows all patient sessions sorted by risk tier. High risk patients appear at the top. Receptionists can use this to reprioritize appointments based on clinical urgency rather than booking order.
+
+### What Makes This Different
+
+- **Patient data never leaves the device** — MedGemma runs locally via Ollama. No symptom data is sent to any external AI API.
+- **RAG-grounded diagnosis** — The LLM cannot hallucinate because it can only answer from retrieved CDC and MedlinePlus documents.
+- **Clinical NER** — medspaCy's ConText algorithm correctly handles negation ("patient denies chest pain") and historical context ("had a heart attack last year") — patterns that general NLP models completely miss.
+- **Safety override** — Emergency keywords always escalate to HIGH risk regardless of LLM confidence score.
+- **FHIR interoperability** — Patient data is stored in FHIR R4-compatible format, making MediTriage data compatible with real hospital systems.
 
 ---
 
@@ -51,92 +77,63 @@ Layer 7   Data stores → SQLite + ChromaDB vector store + remedy_db.json
 |---|---|
 | Frontend | Streamlit |
 | Backend | Python |
-| LLM | MedGemma via Ollama (local inference) |
+| LLM | alibayram/medgemma via Ollama (local inference) |
 | Clinical NER | medspaCy with TargetRule symptom matching |
 | RAG Framework | LangChain + ChromaDB |
 | Embeddings | pritamdeka/S-PubMedBert-MS-MARCO |
 | Database | SQLite (FHIR-structured) |
-| STT | OpenAI Whisper (base model, local) |
-| TTS | pyttsx3 (local) |
+| Speech to Text | OpenAI Whisper (base model, local) |
+| Text to Speech | pyttsx3 (local) |
 | Notifications | Gmail API |
 | Appointments | Google Calendar API |
-| Test Data | Synthea synthetic patients |
-
----
-
-## Key Design Decisions
-
-**Local-first for privacy** — Ollama runs Mistral entirely on-device. No patient symptom data is sent to any external LLM API. This is essential for healthcare applications where data privacy is non-negotiable.
-
-**RAG for safety** — The LLM is instructed to answer only from retrieved medical documents. This prevents hallucination and makes every diagnosis citable. If confidence is below 0.5, the system falls back to "please consult a doctor" rather than guessing.
-
-**medspaCy for clinical accuracy** — General-purpose NLP models miss clinical negation patterns. medspaCy's ConText algorithm correctly handles "patient denies chest pain" and "no fever" — removing negated symptoms from the active symptom list before they reach the LLM.
-
-**FHIR-structured storage** — Patient data is stored in FHIR R4-compatible JSON format within SQLite. This makes the app interoperable with real hospital systems without requiring a separate FHIR server.
-
-**Severity override** — NER keyword detection for emergency symptoms (chest pain, stiff neck, difficulty breathing) always escalates to HIGH risk regardless of LLM confidence score. Safety takes precedence.
-
----
-
-## Data Sources
-
-All medical knowledge in the RAG pipeline comes from:
-
-- **MedlinePlus** (National Institutes of Health) — consumer health information
-- **CDC** (Centers for Disease Control and Prevention) — disease guidelines and emergency symptoms
-- **Synthea** — synthetic patient records for testing (no real patient data used)
-- **remedy_db.json** — hand-curated home care suggestions sourced from MedlinePlus and CDC
+| Test Data | Synthea synthetic patient records |
 
 ---
 
 ## Project Structure
 
 ```
-projects/
-└── techmantra/
-│   ├── demo/
-│   └── src/  
-
-
-    ├── app/
-    │   ├── main.py                  Streamlit entry point and navigation
-    │   └── session_state.py         Global session state management
-    ├── pages/
-    │   ├── 01_signup.py             Patient profile and physician details
-    │   ├── 02_symptoms.py           Symptom input — text and voice
-    │   ├── 03_results.py            Diagnosis output and risk routing
-    │   └── 04_doctor_dashboard.py   Provider view sorted by urgency
-    ├── core/
-    │   ├── ner.py                   medspaCy clinical NER pipeline
-    │   ├── preprocessing.py         Symptom payload builder
-    │   ├── rag.py                   ChromaDB retrieval via LangChain
-    │   ├── llm.py                   Ollama Mistral inference
-    │   ├── triage.py                Risk engine and remedy lookup
-    │   ├── stt.py                   Whisper speech-to-text
-    │   └── tts.py                   pyttsx3 text-to-speech
-    ├── integrations/
-    │   ├── creds_verification.py    Google OAuth handler
-    │   ├── calendar.py              Google Calendar appointment booking
-    │   ├── notifications.py         Gmail API doctor notifications
-    │   └── fhir_builder.py          FHIR resource constructors
-    ├── db/
-    │   ├── db.py                    SQLite connection and queries
-    │   └── remedy_db.json           Home remedy seed data
-    ├── rag_data/
-    │   ├── ingest.py                Document indexing into ChromaDB
-    │   └── sources/                 Medical source text files
-    │       ├── cdc/                 CDC guidelines
-    │       └── medlineplus/         MedlinePlus articles
-    ├── utils/
-    │   ├── config.py                Environment variables
-    │   └── logger.py                Session audit logging
-    ├── docs/
-    │   ├── README.md                This file
-    │   └── responsible-ai.md        Responsible AI documentation
-    ├── test_data/
-    │   └── synthea_patients.json    Synthetic test patients
-    ├── .env                         API keys — never committed
-    └── requirements.txt             All dependencies
+techmantra/
+├── demo/
+│   └── test_demo.py               End-to-end demo test script
+├── src/
+│   ├── app/
+│   │   ├── main.py                Streamlit entry point and navigation
+│   │   └── session_state.py       Global session state management
+│   ├── core/
+│   │   ├── ner.py                 medspaCy clinical NER pipeline
+│   │   ├── preprocessing.py       Symptom payload builder
+│   │   ├── rag.py                 ChromaDB retrieval via LangChain
+│   │   ├── llm.py                 MedGemma inference via Ollama
+│   │   ├── triage.py              Risk engine and remedy lookup
+│   │   ├── stt.py                 Whisper speech-to-text
+│   │   └── tts.py                 pyttsx3 text-to-speech
+│   ├── db/
+│   │   ├── db.py                  SQLite connection and queries
+│   │   └── remedy_db.json         Home remedy seed data
+│   ├── integrations/
+│   │   ├── creds_verification.py  Google OAuth handler
+│   │   ├── calendar.py            Google Calendar appointment booking
+│   │   ├── notifications.py       Gmail API doctor notifications
+│   │   └── fhir_builder.py        FHIR resource constructors
+│   ├── pages/
+│   │   ├── 01_signup.py           Patient profile form
+│   │   ├── 02_symptoms.py         Symptom input — text and voice
+│   │   ├── 03_results.py          Diagnosis output and risk routing
+│   │   └── 04_doctor_dashboard.py Provider view sorted by urgency
+│   ├── rag_data/
+│   │   ├── ingest.py              Document indexing into ChromaDB
+│   │   └── sources/
+│   │       ├── cdc/               CDC guideline text files
+│   │       └── medlineplus/       MedlinePlus article text files
+│   ├── test_data/
+│   │   └── synthea_patients.json  Synthetic test patients
+│   └── test_src.py                Pipeline integration test
+├── README.md                      This file
+├── responsible-ai.md              Responsible AI documentation
+├── requirements.txt               All Python dependencies
+├── .env                           API keys — never committed
+└── .gitignore
 ```
 
 ---
@@ -146,111 +143,149 @@ projects/
 ### Prerequisites
 
 - Python 3.10 or higher
-- [Ollama](https://ollama.com/download) installed
-- Google Cloud project with Calendar and Gmail APIs enabled
+- [Ollama](https://ollama.com/download) installed on your machine
+- Google Cloud project with Calendar API and Gmail API enabled
 - `credentials.json` downloaded from Google Cloud Console
 
-### Step 1 — Clone and Install
+### Step 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/your-team/ai-triage-app.git
-cd ai-triage-app
+git clone https://github.com/your-team/techmantra.git
+cd techmantra
+```
 
+### Step 2 — Create and Activate Virtual Environment
+
+```bash
 python -m venv hackathon
-source hackathon/bin/activate      # Mac/Linux
-# hackathon\Scripts\activate       # Windows
 
+# Mac / Linux
+source hackathon/bin/activate
+
+# Windows
+hackathon\Scripts\activate
+```
+
+### Step 3 — Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-### Step 2 — Pull the LLM
+### Step 4 — Pull MedGemma via Ollama
 
 ```bash
+# Pull the medical LLM
 ollama pull alibayram/medgemma
+
+# Start the Ollama server — keep this terminal open the entire time
+ollama serve
 ```
 
-### Step 3 — Initialize Database
+### Step 5 — Set Up Environment Variables
 
-```bash
-python db/db.py
-# Output: Database initialized successfully.
+Create a `.env` file in the project root:
+
+```
+DATABASE_PATH=src/db/triage.db
+OLLAMA_MODEL=alibayram/medgemma
+OLLAMA_HOST=http://localhost:11434
 ```
 
-### Step 4 — Index Medical Documents
+### Step 6 — Initialize the Database
 
 ```bash
-python rag_data/ingest.py
-# Output: All documents indexed into ChromaDB.
+python src/db/db.py
+# Expected output: Database initialized successfully.
 ```
 
-### Step 5 — Set Up Google Credentials
-
-Place `credentials.json` in the project root, then:
+### Step 7 — Index Medical Documents into ChromaDB
 
 ```bash
-python integrations/creds_verification.py
-# Browser opens for Google login
+python src/rag_data/ingest.py
+# Expected output: All documents indexed into ChromaDB.
+```
+
+### Step 8 — Set Up Google Credentials
+
+Place your `credentials.json` in the project root, then:
+
+```bash
+python src/integrations/creds_verification.py
+# A browser window opens — log in with your Google account
 # token.json is created automatically
 ```
 
-### Step 6 — Run the App
+### Step 9 — Run the App
 
 ```bash
-streamlit run app/main.py
+streamlit run src/app/main.py
 ```
 
 Open `http://localhost:8501` in your browser.
 
----
-
-## Testing the Pipeline
+### Step 10 — Verify Each Component (Optional)
 
 ```bash
-# Test NER
-python core/ner.py
-
-# Test preprocessing
-python core/preprocessing.py
-
-# Test RAG retrieval
-python core/rag.py
-
-# Test full LLM pipeline
-python core/llm.py
-
-# Test triage engine
-python core/triage.py
-
-# Test notifications
-python integrations/notifications.py
-
-# Test calendar booking
-python integrations/calendar.py
+python src/core/ner.py            # Test clinical NER
+python src/core/preprocessing.py  # Test payload builder
+python src/core/rag.py            # Test RAG retrieval
+python src/core/llm.py            # Test LLM inference
+python src/core/triage.py         # Test risk engine
+python src/test_src.py            # Full end-to-end pipeline test
 ```
+
+---
+
+## Data Sources
+
+All medical knowledge used for RAG retrieval comes from:
+
+- **MedlinePlus** (National Institutes of Health) — `medlineplus.gov`
+- **CDC** (Centers for Disease Control and Prevention) — `cdc.gov`
+- **Synthea** — Synthetic patient records for testing — no real patient data used at any point
+
+---
+
+## Demo
+
+> Add your demo video link and screenshots here before final submission.
+
+**Demo Video:** [Add link here]
+
+**Recommended Demo Flow:**
+
+1. Open the app at `http://localhost:8501`
+2. Complete patient signup with name, age, diabetes as known condition, penicillin as allergy, and doctor details
+3. Navigate to Check Symptoms and type:
+   `"I have a sudden severe headache, high fever of 103, and my neck is very stiff. I also feel sensitive to light. No nausea."`
+4. Click Analyze and show the four-step pipeline running
+5. Show the HIGH RISK result with the 911 emergency prompt
+6. Navigate to Doctor Dashboard — show patient sorted at top by risk
+7. Start a second session with: `"I have a runny nose, mild cough, and a slight fever for 2 days"`
+8. Show the LOW RISK result with home care remedies cited from MedlinePlus
 
 ---
 
 ## Known Limitations
 
-- Ollama performance depends on device hardware — larger models require 16GB+ RAM
-- medspaCy TargetRule matching covers defined symptom list only — rare conditions outside the list may not be extracted
+- MedGemma inference speed depends on device hardware — 8GB+ RAM recommended
+- medspaCy TargetRule covers approximately 50 common symptoms — rare conditions rely on raw text passed to the LLM
 - Remedy database covers 10 common conditions — uncommon diagnoses fall back to LLM-generated suggestions
-- Google Calendar booking schedules 2 hours from current time as a placeholder — production would require proper scheduling
+- Google Calendar booking defaults to 2 hours from current time — production would use proper scheduling
 - Voice input requires clear audio — background noise reduces Whisper accuracy
-- The app is a triage aid only — it is not a diagnostic tool and must not be used as a substitute for clinical judgment
+- This is a triage tool, not a diagnostic tool — always consult a licensed physician
 
 ---
 
-## Team
+## Responsible AI
 
-| Name | Role | Responsibilities |
-|---|---|---|
-| Jahnavi | Backend | NER, preprocessing, triage engine, LLM inference, calendar, Gmail notifications |
-| Megha | AI & Data | RAG pipeline, database, ChromaDB |
-| Harshini | Frontend & Integrations | Streamlit pages, TTS, STT, FHIR builder |
+See [responsible-ai.md](./responsible-ai.md) for full documentation covering model choices, data sources, bias considerations, failure cases, and privacy approach.
 
----
-
-## License
-
-Built for CareDevi AI Innovation Hackathon 2026. Not for clinical use.
+**Key safeguards built into every layer:**
+- LLM answers only from retrieved medical documents — cannot hallucinate
+- Confidence below 50% triggers "please consult a doctor" fallback — no diagnosis shown
+- Emergency keywords always escalate to HIGH risk regardless of LLM confidence score
+- Patient data never leaves the device — all inference is local via Ollama
+- Every single output includes a clinical disclaimer
+- No real patient data was used at any point in development or testing
