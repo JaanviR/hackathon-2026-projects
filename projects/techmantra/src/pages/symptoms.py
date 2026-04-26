@@ -151,6 +151,20 @@ def show():
                 st.session_state["current_page"] = "Results"
                 st.session_state["scroll_to"] = "appointment"
                 st.rerun()
+        elif risk == "UNCERTAIN":
+            st.markdown("""
+                <div style="background:#e8e8e8; border:2px solid #888;
+                    border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                    <h2 style="color:#444; margin:0;">❓ UNABLE TO ASSESS</h2>
+                    <p style="color:#444; font-size:16px; margin:8px 0;">
+                        We could not confidently assess your symptoms. 
+                        <strong>Please consult a doctor directly.</strong>
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+            st.link_button("📞 Find a Doctor", 
+                        "https://www.zocdoc.com", 
+                        use_container_width=True, type="primary")
 
         # ── LOW ──────────────────────────────────────────────────────
         else:
