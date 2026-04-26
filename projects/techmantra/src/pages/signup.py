@@ -17,8 +17,7 @@ AUTH_MODE_KEY = "auth_mode_choice"
 CURRENT_PAGE_KEY = "current_page"
 LOGIN_OPTION = "Login (Patient)"
 SIGNUP_OPTION = "Signup (New Patient)"
-DOCTOR_LOGIN = "Doctor Access" # New Option
-
+DOCTOR_LOGIN = "Doctor Access" 
 
 def _extract_display_name(profile: dict) -> str:
     raw_name = profile.get("name", "User")
@@ -26,16 +25,13 @@ def _extract_display_name(profile: dict) -> str:
         return raw_name[0].get("text", "User")
     return raw_name if isinstance(raw_name, str) else "User"
 
-
 def _load_fhir_patient_profile(patient_id: str) -> dict:
     fhir_bundle = get_patient_as_fhir(patient_id)
-    entries = fhir_bundle.get("entry", [])
-    for entry in entries:
-        resource = entry.get("resource", {})
-        if resource.get("resourceType") == "Patient":
-            return resource
+    # Note: If get_patient_as_fhir returns a direct resource dict instead of a bundle,
+    # you might need to adjust this. Assuming it returns a dict based on your db.py.
+    if fhir_bundle and fhir_bundle.get("resourceType") == "Patient":
+        return fhir_bundle
     return {}
-
 
 def _render_patient_dashboard():
     patient_id = st.session_state.get("patient_id")
@@ -64,7 +60,6 @@ def _render_patient_dashboard():
         st.write(f"**Height (cm):** {patient.get('height_cm', 'NA')}")
         st.write(f"**Weight (kg):** {patient.get('weight_kg', 'NA')}")
 
-    # FIX: Using .get() with default string to avoid join errors
     allergies_text = ", ".join([str(a.get("allergen", "")) for a in allergies]) or "None"
     conditions_text = ", ".join([str(c.get("condition_name", "")) for c in conditions]) or "None"
     st.write(f"**Allergies:** {allergies_text}")
@@ -151,14 +146,15 @@ def _render_login_tab():
         patient_id = patient_data["id"]
         fhir_profile = _load_fhir_patient_profile(patient_id)
         
-        # --- FIX: Set Role and Land on Patient Dashboard ---
         st.session_state.is_authenticated = True
         st.session_state.patient_id = patient_id
         
-        profile = fhir_profile or dict(patient_data)
-        profile["role"] = "patient" # Ensure role is saved
-        st.session_state.user_profile = profile
+        # --- FIX: Ensure email is persisted in the profile ---
+        profile = fhir_profile if fhir_profile else dict(patient_data)
+        profile["role"] = "patient"
+        profile["email"] = clean_login_email # CRITICAL FIX
         
+        st.session_state.user_profile = profile
         st.session_state[CURRENT_PAGE_KEY] = "Dashboard"
         st.rerun()
 
@@ -202,15 +198,16 @@ def _render_signup_tab():
             if dr_email.strip():
                 save_physician(pid, doctor_name.strip() or "Provider", "Clinic", dr_email.strip())
 
-            fhir_profile = _load_fhir_patient_profile(pid)
-            
-            # --- FIX: Set Role and Land on Patient Dashboard ---
+            # --- FIX: Ensure email is persisted in the profile ---
             st.session_state.is_authenticated = True
             st.session_state.patient_id = pid
             
-            profile = fhir_profile or {"name": name.strip(), "id": pid}
-            profile["role"] = "patient" # Ensure role is saved
-            st.session_state.user_profile = profile
+            st.session_state.user_profile = {
+                "name": name.strip(),
+                "email": clean_email, # CRITICAL FIX
+                "id": pid,
+                "role": "patient"
+            }
             
             st.session_state[CURRENT_PAGE_KEY] = "Dashboard"
             st.rerun()
