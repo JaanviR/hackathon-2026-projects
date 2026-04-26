@@ -293,3 +293,5 @@ Then open [http://localhost:3000](http://localhost:3000), log in with Google, up
 
 ---
 
+Link to recorded videos: https://drive.google.com/drive/folders/1mWlThlFgliFhSrZ1J5ja2PRA2xzOdWtU?usp=sharing
+
