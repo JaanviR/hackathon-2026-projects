@@ -1,6 +1,6 @@
 # Purpose: Takes user input (raw symptom text) + extracted NER entities + user profile fetched from database
-
-def preprocess(user_input, ner_entities, user_profile):
+from core.ner import format_for_llm  # Import the helper from NER
+def preprocess(user_input, ner_entities, user_profile, duration="not specified", ui_severity=None):
     # takes in the user input, ner_entities, user_profile and prepares a proper input text for llm
     cleaned_symptoms = user_input.strip()
     
@@ -9,6 +9,9 @@ def preprocess(user_input, ner_entities, user_profile):
     conditions = user_profile.get("conditions", "none")
 
     allergies = user_profile.get("allergies", "none")
+
+    severity = ui_severity.lower() if ui_severity else ner_entities.get("severity", "low")
+
 
     payload = {
         # Original unmodified symptom text from user
@@ -25,6 +28,10 @@ def preprocess(user_input, ner_entities, user_profile):
         # Severity level from NER high-risk keyword check
         # "low" or "high" — used in triage decision
         "severity": ner_entities.get("severity", "low"),
+
+        "severity": severity,
+        
+        "duration": duration,
         
         # Patient demographics for context-aware diagnosis
         "patient_age": age,

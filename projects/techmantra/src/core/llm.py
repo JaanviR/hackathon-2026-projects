@@ -59,6 +59,8 @@ def run_inference(payload, context):
         - Known pre-existing conditions: {payload['known_conditions']}
         - Known allergies: {payload['known_allergies']}
         - Symptoms patient does NOT have: {payload['negations']}
+        - Symptoms duration: {payload.get('duration', 'not specified')}
+        - Symptoms severity: {payload.get('severity', 'not specified')}
 
         REPORTED SYMPTOMS:
         {payload['raw_symptoms']}

@@ -48,13 +48,6 @@ medspaCy's ConText algorithm was designed specifically for clinical text and cor
 
 **Limitation acknowledged:**
 Our symptom list in TargetRule is manually curated and covers approximately 25 common symptoms and conditions. Rare or highly specialized conditions outside this list may not be correctly extracted. In these cases the raw symptom text is still passed to the LLM, which provides a secondary extraction layer.
-- UTI and dehydration have no RAG source documents — these cases are under-triaged
-- Patient self-diagnosis labels (e.g. "I'm having a heart attack") can anchor the model
-  even when actual symptoms are mild
-- Informal or heavily misspelled input may reduce NER extraction accuracy
-- Confidence thresholds are hand-tuned, not clinically validated
-- Calendar booking requires both doctor and patient to use Google Calendar
-- System has not been reviewed by licensed clinicians
 
 ### Embedding Model — pritamdeka/S-PubMedBert-MS-MARCO
 
@@ -130,9 +123,6 @@ Patients describe symptoms differently based on language proficiency, cultural b
 
 The triage engine applies rule-based thresholds (confidence, severity, and symptom duration). However, risk profiles differ significantly by age, sex, and medical history. A confidence score of 0.7 for chest pain in a 55-year-old male with diabetes represents different clinical urgency than the same score in a 25-year-old female with no risk factors.
 
-**Evaluation result:**
-Cases 40 vs 41 confirmed no gender bias — female atypical cardiac presentation returned HIGH, identical to male presentation."
-
 **Mitigation:** Patient age, known conditions, and allergies are included in every LLM prompt, giving the model demographic context for its assessment. This does not fully resolve the issue but reduces its impact.
 
 ### Acknowledged Limitation
@@ -148,7 +138,6 @@ We are a team of three developers building a hackathon prototype. We are not cli
 **Scenario:** The retrieved medical documents do not closely match the patient's symptoms. The LLM returns a confidence score below 0.4.
 
 **Safeguard:** The triage engine returns UNCERTAIN for any confidence score below 0.4. The app displays "We were unable to make a confident assessment — please consult a doctor directly." No diagnosis is shown. No remedy is suggested.
-The UI displays a grey 'Unable to Assess' banner and routes the patient to find a doctor rather than showing a diagnosis."
 
 ### Failure Case 2 — High Risk Keyword in Negated Context
 
